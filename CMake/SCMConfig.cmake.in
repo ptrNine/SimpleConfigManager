@@ -1,0 +1,12 @@
+if (NOT SCM_EXPORTS_INCLUDED)
+    include("@SCM_CMAKE_PATH@/SCMExports.cmake")
+    set(SCM_EXPORTS_INCLUDED 1)
+endif()
+
+set(SCM_LIBRARIES "scmfs")
+set(SCM_STATIC_LIBRARIES "scmfs_static")
+
+set(SCM_INCLUDE_DIRS "@SCM_INCLUDE_PATH@")
+set(SCM_LIBRARY_DIRS "@SCM_LIB_PATH@")
+
+set(SCM_USE_FILE "@SCM_CMAKE_PATH@/UseSCM.cmake")

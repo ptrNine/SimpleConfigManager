@@ -1,0 +1,5 @@
+if(NOT SCM_USE_FILE_INCLUDED)
+    set(SCM_USE_FILE_INCLUDED 1)
+    include_directories(${SCM_INCLUDE_DIRS})
+    link_directories(${SCM_LIBRARY_DIRS})
+endif()

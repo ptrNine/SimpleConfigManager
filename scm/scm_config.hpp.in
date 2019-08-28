@@ -1,0 +1,9 @@
+#pragma once
+
+@SCM_NAMESPACE_DEF@
+@SCM_ASSERT@
+
+//#define SCM_NAMESPACE scm
+//#define SCM_ASSERTS assert_func
+//#define SCM_FMT_ASSERTS assert_func
+
