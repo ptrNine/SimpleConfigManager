@@ -218,7 +218,7 @@ namespace SCM_NAMESPACE {
         }
 
         // Array
-        template <typename A, typename T = typename A::ValType, SizeT _Size = A::ArraySize>
+        template <typename A, typename T = std::remove_reference_t<decltype(std::declval<A>()[0])>, SizeT _Size = sizeof(A)/sizeof(T)>
         SIA superCast(StrViewCref str, StrViewCref name, StrViewCref section)
         -> std::enable_if_t<scm_utils::any_of<A, ScmArray<T, _Size>, std::array<T, _Size>>, A> {
             auto vec = readerUnpackMulti(name, section, str, _Size);
@@ -226,7 +226,7 @@ namespace SCM_NAMESPACE {
         }
 
         // Vector
-        template <typename A, typename T = typename A::ValType>
+        template <typename A, typename T = std::remove_reference_t<decltype(std::declval<A>()[0])>>
         SIA superCast(StrViewCref str, StrViewCref name, StrViewCref section)
         -> std::enable_if_t<scm_utils::any_of<A, ScmVector<T>, std::vector<T>>, A> {
             auto vec = readerUnpackMulti(name, section, str);

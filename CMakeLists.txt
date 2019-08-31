@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 project(SCM)
 
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pedantic")
 
 set(ScmIncludes
         scm/scm.hpp
@@ -17,7 +18,7 @@ set(SCM_LIB_PATH "${CMAKE_INSTALL_PREFIX}/lib")
 set(SCM_CMAKE_PATH "${SCM_LIB_PATH}/cmake/SCM")
 set(SCM_NAMESPACE scm)
 
-option(SCM_BUILD_TESTS "Build test programs" OFF)
+option(SCM_BUILD_TESTS "Build test programs" ON)
 
 set(SCM_NAMESPACE_DEF "#define SCM_NAMESPACE ${SCM_NAMESPACE}")
 
@@ -57,3 +58,8 @@ configure_file(
         ${PROJECT_SOURCE_DIR}/CMake/SCMConfig.cmake.in
         ${PROJECT_BINARY_DIR}/SCMConfig.cmake @ONLY
 )
+
+if(SCM_BUILD_TESTS)
+    message("Dsadads")
+    add_subdirectory(tests)
+endif()

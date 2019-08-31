@@ -279,7 +279,7 @@ namespace cfg_detls {
                 SCM_ASSERTS(!isSectionExists(key) || !key.compare(GLOBAL_NAMESPACE),
                             "Duplicate section [{}] in {}:{}", key, path, lineNum + 1);
             #else
-                if (isSectionExists(key) && key == GLOBAL_NAMESPACE)
+                if (isSectionExists(key) && (key != GLOBAL_NAMESPACE))
                     throw CfgException(cfg_detls::str_join(
                             "Duplicate section [", key, "] in ", path, ":", std::to_string(lineNum + 1).data()));
             #endif
@@ -688,7 +688,7 @@ namespace cfg_detls {
             SCM_FMT_ASSERTS(*ptr == '=',
                             "Missing delimiter '=' at key '{}' in {}:{}", key, path, lineNum + 1);
         #else
-            if (!skip_spaces_if_no_endl(ptr, line.cend()))
+            if (skip_spaces_if_no_endl(ptr, line.cend()))
                 throw cfg_detls::CfgException(cfg_detls::str_join(
                         "Missing value at key '", key, "' in ", path, ":",
                         std::to_string(lineNum + 1).data()));

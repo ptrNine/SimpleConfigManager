@@ -60,14 +60,31 @@ namespace scm_utils {
         }
     }
 
+    // File reader exception
+
+    class ScmIfsException : public std::exception {
+    public:
+        ScmIfsException(ScmString error) : _exc(std::move(error)) {}
+        const char* what() const noexcept override { return _exc.data(); }
+
+    private:
+        ScmString _exc;
+    };
+
     template <typename S>
     inline auto read_file_to_string(const S& name) -> std::enable_if_t<is_string<S>, ScmString>
     {
         auto path = ScmString(name);
         auto ifs = std::ifstream(path.data(), std::ios_base::binary | std::ios_base::in);
 
-//        if (!_ifs.is_open())
-//            RABORTF("Can't open file: \'{}\'", path);
+        #ifdef SCM_ASSERTS
+            SCM_ASSERTS(ifs.is_open(), "Can't open file: \'%s\'", path.data());
+        #elif defined SCM_FMT_ASSERTS
+            SCM_FMT_ASSERTS(ifs.is_open(), "Can't open file: \'{}\'", path);
+        #else
+            if (!ifs.is_open())
+                throw ScmIfsException(ScmString("Can't open file: '") + path + "'");
+        #endif
 
         ifs.seekg(0, std::ios_base::end);
         auto size = static_cast<ScmSizeT>(ifs.tellg());
@@ -80,10 +97,8 @@ namespace scm_utils {
         return std::move(str);
     }
 
-    template <typename S = ScmString>
-    inline auto split_view(const ScmString& str, std::initializer_list<char> l, bool createNullStrs)
-    -> std::enable_if_t<is_string<S>,
-    ScmVector<ScmStrView>>
+    inline auto split_view(const ScmStrView& str, std::initializer_list<char> l, bool createNullStrs)
+    -> ScmVector<ScmStrView>
     {
         ScmVector<ScmStrView> vec;
         ScmSizeT start = 0;
