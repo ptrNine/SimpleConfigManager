@@ -3,6 +3,7 @@
 #include "scm_utils.hpp"
 #include "scm_types.hpp"
 #include "scm_filesystem.hpp"
+#include "scm_aton.hpp"
 
 #ifdef SCM_NAMESPACE
 namespace SCM_NAMESPACE {
@@ -14,10 +15,11 @@ namespace SCM_NAMESPACE {
 }
 #endif // SCM_NAMESPACE
 
+#define SIA static inline auto
 
 //////////////////////////////////// Details ///////////////////////////////////
 
-namespace cfg_detls {
+namespace scm_details {
     // Typedefs
 
     using SizeT       = ScmSizeT;
@@ -37,51 +39,15 @@ namespace cfg_detls {
     using StrViewVector = ScmVector<StrView>;
     using StrStrMap     = ScmMap<String, String>;
     using StrSectionMap = ScmMap<String, class Section>;
-
-
-    // Constants
+    using CfgException  = scm_utils::CfgException;
 
     static constexpr inline std::string_view GLOBAL_NAMESPACE = "__global";
-
-    static inline auto DEFAULT_CFG_PATH() {
-        return
-            scm_utils::append_path(
-                #ifdef SCM_NAMESPACE
-                    scm_utils::parent_path(SCM_NAMESPACE::fs::current_path()),
-                #else
-                    scm_utils::parent_path(fs::current_path()),
-                #endif
-                ScmString("fs.cfg"));
-    }
-
-
-    // Cfg exception
-
-    class CfgException : public std::exception {
-    public:
-        CfgException(String error) : _exc(std::move(error)) {}
-        const char* what() const noexcept override { return _exc.data(); }
-
-    private:
-        String _exc;
-    };
-
-
-    // Helper function for strings
-    template <typename ... ArgT>
-    static auto str_join(const ArgT& ... strs) -> ScmString {
-        return (String(strs) + ...);
-    }
 
 
     // Creation state
 
     class CfgCreationState {
-        friend
-        #ifdef SCM_NAMESPACE
-                SCM_NAMESPACE::
-        #endif // SCM_NAMESPACE
-                                ConfigManager;
+        friend SCM_NAMESPACE::ConfigManager;
     public:
         void clearCfgEntries() {
             _cfgEntries.clear();
@@ -116,10 +82,7 @@ namespace cfg_detls {
         }
 
     private:
-        CfgCreationState () {
-            // Add default cfgPath
-            _cfgEntries.emplace_back(DEFAULT_CFG_PATH());
-        }
+        CfgCreationState () {}
         ~CfgCreationState() = default;
     };
 
@@ -137,15 +100,7 @@ namespace cfg_detls {
         auto getValue(StringCref key) const -> StringCref {
             auto val = _pairs.find(key);
 
-            #ifdef SCM_ASSERTS
-                SCM_ASSERTS(val != _pairs.end(), "Can't find key '%s' in section [%s]", key.data(), _name.data());
-            #elif defined SCM_FMT_ASSERTS
-                SCM_FMT_ASSERTS(val != _pairs.end(), "Can't find key '{}' in section [{}]", key, _name);
-            #else
-                if (val == _pairs.end())
-                    throw CfgException(cfg_detls::str_join(
-                            "Can't find key '", key, "' in section [", _name, "]"));
-            #endif
+            SCM_EXCEPTION(CfgException, val != _pairs.end(), "Can't find key '", key, "' in section [", _name, "]");
 
             return val->second;
         }
@@ -153,15 +108,7 @@ namespace cfg_detls {
         auto getValue(StringCref key) -> StringRef {
             auto val = _pairs.find(key);
 
-            #ifdef SCM_ASSERTS
-                SCM_ASSERTS(val != _pairs.end(), "Can't find key '%s' in section [%s]", key.data(), _name.data());
-            #elif defined SCM_FMT_ASSERTS
-                SCM_FMT_ASSERTS(val != _pairs.end(), "Can't find key '{}' in section [{}]", key, _name);
-            #else
-                if (val == _pairs.end())
-                    throw CfgException(cfg_detls::str_join(
-                            "Can't find key '", key, "' in section [", _name, "]"));
-            #endif
+            SCM_EXCEPTION(CfgException, val != _pairs.end(), "Can't find key '", key, "' in section [", _name, "]");
 
             return val->second;
         }
@@ -221,15 +168,7 @@ namespace cfg_detls {
         auto getSection(StringCref key) const  -> const Section& {
             auto sect = _sections.find(key);
 
-            #ifdef SCM_ASSERTS
-                SCM_ASSERTS(sect != _sections.end(), "Can't find section [%s]", key.data());
-            #elif defined SCM_FMT_ASSERTS
-                SCM_FMT_ASSERTS(sect != _sections.end(), "Can't find section [{}]", key);
-            #else
-                if (sect == _sections.end())
-                    throw CfgException(cfg_detls::str_join(
-                            "Can't find section [", key, "]"));
-            #endif
+            SCM_EXCEPTION(CfgException, sect != _sections.end(), "Can't find section [", key, "]");
 
             return sect->second;
         }
@@ -237,15 +176,7 @@ namespace cfg_detls {
         auto getSection(StringCref key) -> Section& {
             auto sect = _sections.find(key);
 
-            #ifdef SCM_ASSERTS
-                SCM_ASSERTS(sect != _sections.end(), "Can't find section [%s]", key.data());
-            #elif defined SCM_FMT_ASSERTS
-                SCM_FMT_ASSERTS(sect != _sections.end(), "Can't find section [{}]", key);
-            #else
-                if (sect == _sections.end())
-                    throw CfgException(cfg_detls::str_join(
-                            "Can't find section [", key, "]"));
-            #endif
+            SCM_EXCEPTION(CfgException, sect != _sections.end(), "Can't find section [", key, "]");
 
             return sect->second;
         }
@@ -272,17 +203,8 @@ namespace cfg_detls {
         }
 
         auto addSection(StringCref path, SizeT lineNum, StringCref key) -> Section& {
-            #ifdef SCM_ASSERTS
-                SCM_ASSERTS(!isSectionExists(key) || !key.compare(GLOBAL_NAMESPACE),
-                            "Duplicate section [%s] in %s:%z", key.data(), path.data(), lineNum + 1);
-            #elif defined SCM_FMT_ASSERTS
-                SCM_ASSERTS(!isSectionExists(key) || !key.compare(GLOBAL_NAMESPACE),
-                            "Duplicate section [{}] in {}:{}", key, path, lineNum + 1);
-            #else
-                if (isSectionExists(key) && (key != GLOBAL_NAMESPACE))
-                    throw CfgException(cfg_detls::str_join(
-                            "Duplicate section [", key, "] in ", path, ":", std::to_string(lineNum + 1).data()));
-            #endif
+            SCM_EXCEPTION(CfgException, !isSectionExists(key) || key == GLOBAL_NAMESPACE,
+                          "Duplicate section [", key, "] in ", path, ":", std::to_string(lineNum + 1).data());
 
             auto& sect = _sections[key];
             sect.name() = key;
@@ -483,51 +405,19 @@ namespace cfg_detls {
 
                     ////////// Read key
 
-                    #ifdef SCM_ASSERTS
-                        SCM_ASSERTS(!skip_spaces_if_no_endl(ptr, line.cend()),
-                                    "Empty key after '$' in %s:%z",
-                                    path.data(), lineNum + 1);
+                    SCM_EXCEPTION(CfgException, !skip_spaces_if_no_endl(ptr, line.cend()),
+                                  "Empty key after '$' in ", path, ":", std::to_string(lineNum + 1).data());
 
-                        SCM_ASSERTS(!is_digit(*ptr) && !is_legal_name_symbol(*ptr),
-                                    "Starting key with symbol '%c' in %s:%z",
-                                    *ptr, path.data(), lineNum + 1);
-                    #elif defined SCM_FMT_ASSERTS
-                        SCM_FMT_ASSERTS(!skip_spaces_if_no_endl(ptr, line.cend()),
-                                        "Empty key after '$' in {}:{}",
-                                        path, lineNum + 1);
-
-                        SCM_FMT_ASSERTS(!is_digit(*ptr) && !is_legal_name_symbol(*ptr),
-                                        "Starting key with symbol '{}' in {}:{}",
-                                        *ptr, path, lineNum + 1);
-                    #else
-                        if (skip_spaces_if_no_endl(ptr, line.cend()))
-                            throw cfg_detls::CfgException(cfg_detls::str_join(
-                                    "Empty key after '$' in ", path, ":", std::to_string(lineNum + 1).data()));
-
-                        if (is_digit(*ptr) || is_legal_name_symbol(*ptr))
-                            throw cfg_detls::CfgException(cfg_detls::str_join(
-                                    "Starting key with symbol '", String(1, *ptr), "' in ", path, ":",
-                                    std::to_string(lineNum + 1).data()));
-                    #endif
-
+                    SCM_EXCEPTION(CfgException, !is_digit(*ptr) && !is_legal_name_symbol(*ptr),
+                                  "Starting key with symbol '", String(1, *ptr), "' in ", path, ":",
+                                  std::to_string(lineNum + 1).data());
 
                     auto start = ptr;
 
                     while(!is_space(*ptr) && *ptr != ':' && ptr != line.cend() && *ptr != '}' && *ptr != ',') {
-                        #ifdef SCM_ASSERTS
-                            SCM_ASSERTS(validate_name_symbol(*ptr),
-                                        "Invalid character '%c' in key after '$' in %s:%z",
-                                        *ptr, path.data(), lineNum + 1);
-                        #elif defined SCM_FMT_ASSERTS
-                            SCM_FMT_ASSERTS(validate_name_symbol(*ptr),
-                                            "Invalid character '{}' in key after '$' in {}:{}",
-                                            *ptr, path, lineNum + 1);
-                        #else
-                            if (!validate_name_symbol(*ptr))
-                                throw cfg_detls::CfgException(cfg_detls::str_join(
-                                        "Invalid character '", String(1, *ptr), "' in key after '$' in ", path, ":",
-                                        std::to_string(lineNum + 1).data()));
-                        #endif
+                        SCM_EXCEPTION(CfgException, validate_name_symbol(*ptr),
+                                      "Invalid character '", String(1, *ptr), "' in key after '$' in ", path, ":",
+                                      std::to_string(lineNum + 1).data());
 
                         ++ptr;
                     }
@@ -540,76 +430,34 @@ namespace cfg_detls {
                     ////////// Dereference key
                     if (ptr == line.cend() || *ptr != ':')
                         //////// Read value from global namespaces
-                        val = cfg_detls::cfgData().getValue(String(cfg_detls::GLOBAL_NAMESPACE), String(first));
+                        val = scm_details::cfgData().getValue(String(scm_details::GLOBAL_NAMESPACE), String(first));
                     else if (*ptr == ':'){
                         //////// Read value from section (only no-parents section supported)
                         ++ptr; // skip ':'
 
-                        #ifdef SCM_ASSERTS
-                            SCM_ASSERTS(!skip_spaces_if_no_endl(ptr, line.cend()),
-                                        "Empty key after ':' in %s:%z", path.data(), lineNum + 1);
+                        SCM_EXCEPTION(CfgException, !skip_spaces_if_no_endl(ptr, line.cend()),
+                                      "Empty key after ':' in ", path, ":", std::to_string(lineNum + 1).data());
 
-                            SCM_ASSERTS(!is_digit(*ptr) && !is_legal_name_symbol(*ptr),
-                                        "Starting key with symbol '%c' in %s:%z",
-                                        *ptr, path.data(), lineNum + 1);
-                        #elif defined SCM_FMT_ASSERTS
-                            SCM_FMT_ASSERTS(!skip_spaces_if_no_endl(ptr, line.cend()),
-                                            "Empty key after ':' in {}:{}", path, lineNum + 1);
-
-                            SCM_FMT_ASSERTS(!is_digit(*ptr) && !is_legal_name_symbol(*ptr),
-                                            "Starting key with symbol '{}' in {}:{}",
-                                            *ptr, path, lineNum + 1);
-                        #else
-                            if (skip_spaces_if_no_endl(ptr, line.cend()))
-                                throw cfg_detls::CfgException(cfg_detls::str_join(
-                                        "Empty key after ':' in ", path, ":",
-                                        std::to_string(lineNum + 1).data()));
-
-                            if (is_digit(*ptr) || is_legal_name_symbol(*ptr))
-                                throw cfg_detls::CfgException(cfg_detls::str_join(
-                                        "Starting key with symbol '", String(1, *ptr), "' in ", path, ":",
-                                        std::to_string(lineNum + 1).data()));
-                        #endif
+                        SCM_EXCEPTION(CfgException, !is_digit(*ptr) && !is_legal_name_symbol(*ptr),
+                                      "Starting key with symbol '", String(1, *ptr), "' in ", path, ":",
+                                      std::to_string(lineNum + 1).data());
 
                         auto start2 = ptr;
 
                         while(!is_space(*ptr) && *ptr != ':' && ptr != line.cend()) {
-
-                            #ifdef SCM_ASSERTS
-                                SCM_ASSERTS(validate_name_symbol(*ptr),
-                                            "Invalid character '%c' in key after '$' in %s:%z",
-                                            *ptr, path.data(), lineNum + 1);
-                            #elif defined SCM_FMT_ASSERTS
-                                SCM_FMT_ASSERTS(validate_name_symbol(*ptr),
-                                                "Invalid character '{}' in key after '$' in {}:{}",
-                                                *ptr, path, lineNum + 1);
-                            #else
-                                if (!validate_name_symbol(*ptr))
-                                    throw cfg_detls::CfgException(cfg_detls::str_join(
-                                            "Invalid character '", String(1, *ptr), "' in key after '$' in ", path, ":",
-                                            std::to_string(lineNum + 1).data()));
-                            #endif
+                            SCM_EXCEPTION(CfgException, validate_name_symbol(*ptr),
+                                          "Invalid character '", String(1, *ptr), "' in key after '$' in ", path, ":",
+                                          std::to_string(lineNum + 1).data());
 
                             ++ptr;
                         }
 
                         auto second = line.substr(start2 - line.cbegin(), ptr - start2);
+                        SCM_EXCEPTION(CfgException, scm_details::cfgData().getSection(String(first)).getParents().empty(),
+                                      "Attempt to dereference key '", second, "' from section [", first, "] with parent ",
+                                      "in ", path, ":", std::to_string(lineNum + 1).data());
 
-                        #ifdef SCM_ASSERTS
-                            SCM_ASSERTS(cfg_detls::cfgData().getSection(first).getParents().empty(),
-                                        "Attempt to dereference key '%s' from section [%s] with parent "
-                                        "in %s:%z", String(second).data(), String(first).data(), path.data(), lineNum + 1);
-                        #elif defined SCM_FMT_ASSERTS
-                            SCM_FMT_ASSERTS(cfg_detls::cfgData().getSection(first).getParents().empty(),
-                                            "Attempt to dereference key '{}' from section [{}] with parent "
-                                            "in {}:{}", second, first, path, lineNum + 1);
-                        #else
-                            if (!cfg_detls::cfgData().getSection(String(first)).getParents().empty())
-                                throw cfg_detls::CfgException(cfg_detls::str_join(
-                                        "Attempt to dereference key '", second, "' from section [", first, "] with parent ",
-                                        "in ", path, ":", std::to_string(lineNum + 1).data()));
-                        #endif
-                        val = cfg_detls::cfgData().getValue(String(first), String(second));
+                        val = scm_details::cfgData().getValue(String(first), String(second));
                     }
 
                     result += remove_brackets_if_exists(val);
@@ -637,36 +485,15 @@ namespace cfg_detls {
 
         auto start = ptr;
 
-        #ifdef SCM_ASSERTS
-            SCM_ASSERTS(!is_digit(*ptr) && !is_legal_name_symbol(*ptr),
-                    "Starting key with symbol '%c' in %s:%z",
-                    *ptr, path.data(), lineNum + 1);
-        #elif defined SCM_FMT_ASSERTS
-            SCM_FMT_ASSERTS(!is_digit(*ptr) && !is_legal_name_symbol(*ptr),
-                            "Starting key with symbol '{}' in {}:{}",
-                            *ptr, path, lineNum + 1);
-        #else
-            if (is_digit(*ptr) || is_legal_name_symbol(*ptr))
-                throw cfg_detls::CfgException(cfg_detls::str_join(
-                        "Starting key with symbol '", String(1, *ptr), "' in ", path, ":",
-                        std::to_string(lineNum + 1).data()));
-        #endif
+        SCM_EXCEPTION(CfgException, !is_digit(*ptr) && !is_legal_name_symbol(*ptr),
+                      "Starting key with symbol '", String(1, *ptr), "' in ", path, ":",
+                      std::to_string(lineNum + 1).data());
 
         while(!is_space(*ptr) && *ptr != '=' && ptr != line.cend()) {
-        #ifdef SCM_ASSERTS
-                SCM_ASSERTS(validate_name_symbol(*ptr),
-                            "Invalid character '%c' in key definition '$' in %s:%z",
-                            *ptr, path.data(), lineNum + 1);
-        #elif defined SCM_FMT_ASSERTS
-                SCM_FMT_ASSERTS(validate_name_symbol(*ptr),
-                                "Invalid character '{}' in key definition '$' in {}:{}",
-                                *ptr, path, lineNum + 1);
-        #else
-                if (!validate_name_symbol(*ptr))
-                    throw cfg_detls::CfgException(cfg_detls::str_join(
-                            "Invalid character '", String(1, *ptr), "' in key definition '$' in ", path, ":",
-                            std::to_string(lineNum + 1).data()));
-        #endif
+
+            SCM_EXCEPTION(CfgException, validate_name_symbol(*ptr),
+                          "Invalid character '", String(1, *ptr), "' in key definition '$' in ", path, ":",
+                          std::to_string(lineNum + 1).data());
 
             ++ptr;
         }
@@ -675,46 +502,19 @@ namespace cfg_detls {
 
 
         //////////// Read values (no space deleting inside values)
-        #ifdef SCM_ASSERTS
-            SCM_ASSERTS(!skip_spaces_if_no_endl(ptr, line.cend()),
-                        "Missing value at key '%s' in %s:%z", String(key).data(), path.data(), lineNum + 1);
+        SCM_EXCEPTION(CfgException, !skip_spaces_if_no_endl(ptr, line.cend()),
+                      "Missing value at key '", key, "' in ", path, ":",
+                      std::to_string(lineNum + 1).data());
 
-            SCM_ASSERTS(*ptr == '=',
-                        "Missing delimiter '=' at key '%s' in %s:%z", String(key).data(), path.data(), lineNum + 1);
-        #elif defined SCM_FMT_ASSERTS
-            SCM_FMT_ASSERTS(!skip_spaces_if_no_endl(ptr, line.cend()),
-                            "Missing value at key '{}' in {}:{}", key, path, lineNum + 1);
-
-            SCM_FMT_ASSERTS(*ptr == '=',
-                            "Missing delimiter '=' at key '{}' in {}:{}", key, path, lineNum + 1);
-        #else
-            if (skip_spaces_if_no_endl(ptr, line.cend()))
-                throw cfg_detls::CfgException(cfg_detls::str_join(
-                        "Missing value at key '", key, "' in ", path, ":",
-                        std::to_string(lineNum + 1).data()));
-
-            if (*ptr != '=')
-                throw cfg_detls::CfgException(cfg_detls::str_join(
-                        "Missing delimiter '=' at key '", key, "' in ", path, ":",
-                        std::to_string(lineNum + 1).data()));
-        #endif
+        SCM_EXCEPTION(CfgException, *ptr == '=', "Missing delimiter '=' at key '", key, "' in ", path, ":",
+                      std::to_string(lineNum + 1).data());
 
         ++ptr;
 
         auto value = remove_space_bounds_if_exists(line.substr(ptr - line.cbegin(), line.end() - ptr));
 
-        #ifdef SCM_ASSERTS
-            SCM_ASSERTS(!value.empty(),
-                        "Missing value at key '%s' in %s:%z", String(key).data(), path.data(), lineNum + 1);
-        #elif defined SCM_FMT_ASSERTS
-            SCM_FMT_ASSERTS(!value.empty(),
-                            "Missing value at key '{}' in {}:{}", key, path, lineNum + 1);
-        #else
-            if (value.empty())
-                throw cfg_detls::CfgException(cfg_detls::str_join(
-                        "Missing value at key '", key, "' in ", path, ":",
-                        std::to_string(lineNum + 1).data()));
-        #endif
+        SCM_EXCEPTION(CfgException, !value.empty(), "Missing value at key '", key, "' in ", path, ":",
+                      std::to_string(lineNum + 1).data());
 
         return StrViewPair(key, value);
     }
@@ -736,20 +536,9 @@ namespace cfg_detls {
                     onDoubleQuotes = !onDoubleQuotes;
 
                 else if (!onSingleQuotes && !onDoubleQuotes) {
-                    #ifdef SCM_ASSERTS
-                        SCM_ASSERTS(validate_symbol(*i),
-                                    "Undefined char symbol '%c' [%i] in %s:%z",
-                                    *i, unsigned(*i), path.data(), n + 1);
-                    #elif defined SCM_FMT_ASSERTS
-                        SCM_FMT_ASSERTS(validate_symbol(*i),
-                                        "Undefined char symbol '{}' [{}] in {}:{}",
-                                        *i, unsigned(*i), path, n + 1);
-                    #else
-                        if (!validate_symbol(*i))
-                            throw cfg_detls::CfgException(cfg_detls::str_join(
-                                    "Undefined char symbol '", String(1, *i), "' [", std::to_string(unsigned(*i)).data(),
-                                    "] in ", path, ":", std::to_string(n + 1).data()));
-                    #endif
+                    SCM_EXCEPTION(CfgException, validate_symbol(*i),
+                                  "Undefined char symbol '", String(1, *i), "' [", std::to_string(unsigned(*i)).data(),
+                                  "] in ", path, ":", std::to_string(n + 1).data());
 
                     if (*i == ';' || (*i == '/' && *(i + 1) == '/')) {
                         line = line.substr(0, i - line.begin());
@@ -758,20 +547,8 @@ namespace cfg_detls {
                 }
             }
 
-            #ifdef SCM_ASSERTS
-                SCM_ASSERTS(!onSingleQuotes, "Missing second \' quote in %s:%z", path.data(), n + 1);
-                SCM_ASSERTS(!onDoubleQuotes, "Missing second \" quote in %s:%z", path.data(), n + 1);
-            #elif defined SCM_FMT_ASSERTS
-                SCM_FMT_ASSERTS(!onSingleQuotes, "Missing second \' quote in {}:{}", path, n + 1);
-                SCM_FMT_ASSERTS(!onDoubleQuotes, "Missing second \" quote in {}:{}", path, n + 1);
-            #else
-                if (onSingleQuotes)
-                    throw cfg_detls::CfgException(cfg_detls::str_join(
-                            "Missing second \' quote in ", path, ":", std::to_string(n + 1).data()));
-                if (onDoubleQuotes)
-                    throw cfg_detls::CfgException(cfg_detls::str_join(
-                            "Missing second \" quote in ", path, ":", std::to_string(n + 1).data()));
-            #endif
+            SCM_EXCEPTION(CfgException, !onSingleQuotes, "Missing second \' quote in ", path, ":", std::to_string(n + 1).data());
+            SCM_EXCEPTION(CfgException, !onDoubleQuotes, "Missing second \" quote in ", path, ":", std::to_string(n + 1).data());
         }
     }
 
@@ -782,35 +559,15 @@ namespace cfg_detls {
 
         ++ptr; // skip '#'
 
-        #ifdef SCM_ASSERTS
-            SCM_ASSERTS(!skip_spaces_if_no_endl(ptr, line.cend()),
-                        "Empty preprocessor directive in %s:%z", path.data(), lineNum + 1);
-        #elif defined SCM_FMT_ASSERTS
-            SCM_FMT_ASSERTS(!skip_spaces_if_no_endl(ptr, line.cend()),
-                            "Empty preprocessor directive in {}:{}", path, lineNum + 1);
-        #else
-            if (skip_spaces_if_no_endl(ptr, line.cend()))
-                throw cfg_detls::CfgException(cfg_detls::str_join(
-                        "Empty preprocessor directive in ", path, ":", std::to_string(lineNum + 1).data()));
-        #endif
+        SCM_EXCEPTION(CfgException, !skip_spaces_if_no_endl(ptr, line.cend()),
+                      "Empty preprocessor directive in ", path, ":", std::to_string(lineNum + 1).data());
 
         auto start = ptr;
 
         while (!is_space(*ptr) && ptr != line.cend()) {
-        #ifdef SCM_ASSERTS
-                SCM_ASSERTS(is_plain_text(*ptr),
-                           "Invalid character in preprocessor directive in %s:%z",
-                           path.data(), lineNum + 1);
-        #elif defined SCM_FMT_ASSERTS
-                SCM_FMT_ASSERTS(is_plain_text(*ptr),
-                                "Invalid character in preprocessor directive in {}:{}",
-                                path, lineNum + 1);
-        #else
-                if (!is_plain_text(*ptr))
-                    throw cfg_detls::CfgException(cfg_detls::str_join(
-                            "Invalid character in preprocessor directive in ", path, ":",
-                            std::to_string(lineNum + 1).data()));
-        #endif
+
+            SCM_EXCEPTION(CfgException, is_plain_text(*ptr), "Invalid character in preprocessor directive in ", path, ":",
+                          std::to_string(lineNum + 1).data());
 
             ++ptr;
         }
@@ -821,38 +578,22 @@ namespace cfg_detls {
         if (first == "include") {
             auto appendPath = remove_brackets_if_exists(remove_space_bounds_if_exists(backline));
 
-            #ifdef SCM_ASSERTS
-                SCM_ASSERTS(!appendPath.empty(),
-                           "Empty path in include directive in %s:%z", path.data(), lineNum + 1);
-            #elif defined SCM_FMT_ASSERTS
-                SCM_FMT_ASSERTS(!appendPath.empty(),
-                                "Empty path in include directive in {}:{}", path, lineNum + 1);
-            #else
-                if (appendPath.empty())
-                    throw cfg_detls::CfgException(cfg_detls::str_join(
-                            "Empty path in include directive in ", path, ":",
-                            std::to_string(lineNum + 1).data()));
-            #endif
+            SCM_EXCEPTION(CfgException, !appendPath.empty(),
+                          "Empty path in include directive in ", path, ":",
+                          std::to_string(lineNum + 1).data());
 
             processFileTask(scm_utils::append_path(scm_utils::parent_path(path), String(appendPath)));
         } else {
-            #ifdef SCM_ASSERTS
-                SCM_ASSERTS(0, "Unknown preprocessor directive '#%s' in %s:%z", String(first).data(), path.data(), lineNum + 1);
-            #elif defined SCM_FMT_ASSERTS
-                SCM_FMT_ASSERTS(0, "Unknown preprocessor directive '#{}' in {}:{}", first, path, lineNum + 1);
-            #else
-                throw cfg_detls::CfgException(cfg_detls::str_join(
-                        "Unknown preprocessor directive '#", first, "' in ", path, ":",
-                        std::to_string(lineNum + 1).data()));
-            #endif
+            SCM_EXCEPTION(CfgException, 0, "Unknown preprocessor directive '#", first, "' in ", path, ":",
+                          std::to_string(lineNum + 1).data());
         }
     }
 
 
 
     void parseLinesTask(StringCref path, StrViewVector& lines) {
-        using cfg_detls::Section;
-        using cfg_detls::cfgData;
+        using scm_details::Section;
+        using scm_details::cfgData;
 
         Section* currentSection = nullptr;
 
@@ -868,54 +609,23 @@ namespace cfg_detls {
 
                 ////////////// Read section
 
-                #ifdef SCM_ASSERTS
-                    SCM_ASSERTS(!is_digit(*ptr) && !is_legal_name_symbol(*ptr),
-                               "Starting section with symbol '%c' in %s:%z",
-                               *ptr, path.data(), n + 1);
-                #elif defined SCM_FMT_ASSERTS
-                    SCM_FMT_ASSERTS(!is_digit(*ptr) && !is_legal_name_symbol(*ptr),
-                                    "Starting section with symbol '{}' in {}:{}",
-                                    *ptr, path, n + 1);
-                #else
-                    if (is_digit(*ptr) || is_legal_name_symbol(*ptr))
-                        throw cfg_detls::CfgException(cfg_detls::str_join(
-                                "Starting section with symbol '", String(1, *ptr), "' in ", path, ":",
-                                std::to_string(n + 1).data()));
-                #endif
+                SCM_EXCEPTION(CfgException, !is_digit(*ptr) && !is_legal_name_symbol(*ptr),
+                              "Starting section with symbol '", String(1, *ptr), "' in ", path, ":",
+                              std::to_string(n + 1).data());
 
                 while(*ptr != ']' && ptr != line.cend()) {
-                    #ifdef SCM_ASSERTS
-                        SCM_ASSERTS(validate_name_symbol(*ptr),
-                                    "Invalid character '%c' in section definition in %s:%z",
-                                    *ptr, path, n + 1);
-                    #elif defined SCM_FMT_ASSERTS
-                        SCM_FMT_ASSERTS(validate_name_symbol(*ptr),
-                                        "Invalid character '{}' in section definition in {}:{}",
-                                        *ptr, path, n + 1);
-                    #else
-                        if (!validate_name_symbol(*ptr))
-                            throw cfg_detls::CfgException(cfg_detls::str_join(
-                                    "Invalid character '", String(1, *ptr), "' in section definition in ", path, ":",
-                                    std::to_string(n + 1).data()));
-                    #endif
+
+                    SCM_EXCEPTION(CfgException, validate_name_symbol(*ptr),
+                                  "Invalid character '", String(1, *ptr), "' in section definition in ", path, ":",
+                                  std::to_string(n + 1).data());
 
                     ++ptr;
                 }
 
-                #ifdef SCM_ASSERTS
-                    SCM_ASSERTS(*ptr == ']', "Missing close section bracket in %s:%z", path.data(), n + 1);
-                #elif defined SCM_FMT_ASSERTS
-                    SCM_FMT_ASSERTS(*ptr == ']', "Missing close section bracket in {}:{}", path, n + 1);
-                #else
-                    if (*ptr != ']')
-                        throw cfg_detls::CfgException(cfg_detls::str_join(
-                                "Missing close section bracket in ", path, ":",
-                                std::to_string(n + 1).data()));
-                #endif
+                SCM_EXCEPTION(CfgException, *ptr == ']', "Missing close section bracket in ", path, ":",
+                              std::to_string(n + 1).data());
 
-                currentSection =
-                        &cfgData().addSection(path, n,
-                                              String(line.substr(start - line.cbegin(), ptr - start)));
+                currentSection = &cfgData().addSection(path, n, String(line.substr(start - line.cbegin(), ptr - start)));
 
                 ++ptr; // skip ']'
 
@@ -925,71 +635,27 @@ namespace cfg_detls {
 
                 /////////////// Read parents
 
-                #ifdef SCM_ASSERTS
-                    SCM_ASSERTS(*ptr == ':',
-                                "Unexpected symbol '%c' after section [%s] definition in %s:%z.",
-                                *ptr, currentSection->name().data(), path.data(), n+ 1);
-                #elif defined SCM_FMT_ASSERTS
-                    SCM_FMT_ASSERTS(*ptr == ':',
-                                    "Unexpected symbol '{}' after section [{}] definition in {}:{}.",
-                                    *ptr, currentSection->name(), path, n+ 1);
-                #else
-                    if (*ptr != ':')
-                        throw cfg_detls::CfgException(cfg_detls::str_join(
-                                "Unexpected symbol '", String(1, *ptr), "' after section [", currentSection->name(),
-                                "] definition in ", path, ":", std::to_string(n + 1).data()));
-                #endif
+                SCM_EXCEPTION(CfgException, *ptr == ':',
+                              "Unexpected symbol '", String(1, *ptr), "' after section [", currentSection->name(),
+                              "] definition in ", path, ":", std::to_string(n + 1).data());
 
                 ++ptr; // skip ':'
 
-                #ifdef SCM_ASSERTS
-                    SCM_ASSERTS(!skip_spaces_if_no_endl(ptr, line.cend()),
-                                "Missing parents sections after ':' in %s:%z",
-                                path.data(), n + 1);
-                #elif defined SCM_FMT_ASSERTS
-                    SCM_FMT_ASSERTS(!skip_spaces_if_no_endl(ptr, line.cend()),
-                                    "Missing parents sections after ':' in {}:{}.",
-                                    path, n + 1);
-                #else
-                    if (skip_spaces_if_no_endl(ptr, line.cend()))
-                        throw cfg_detls::CfgException(cfg_detls::str_join(
-                                "Missing parents sections after ':' in ", path, ":",
-                                std::to_string(n + 1).data()));
-                #endif
+                SCM_EXCEPTION(CfgException, !skip_spaces_if_no_endl(ptr, line.cend()),
+                              "Missing parents sections after ':' in ", path, ":",
+                              std::to_string(n + 1).data());
 
                 while(ptr != line.end()) {
                     auto start2 = ptr;
 
-                    #ifdef SCM_ASSERTS
-                        SCM_ASSERTS(!is_digit(*ptr) && !is_legal_name_symbol(*ptr),
-                                     "Starting parent definition with symbol '%c' in %s:%z",
-                                     *ptr, path.data(), n + 1);
-                    #elif defined SCM_FMT_ASSERTS
-                        SCM_FMT_ASSERTS(!is_digit(*ptr) && !is_legal_name_symbol(*ptr),
-                                        "Starting parent definition with symbol '{}' in {}:{}",
-                                        *ptr, path, n + 1);
-                    #else
-                        if (is_digit(*ptr) || is_legal_name_symbol(*ptr))
-                            throw cfg_detls::CfgException(cfg_detls::str_join(
-                                    "Starting parent definition with symbol '", String(1, *ptr), "' in ", path, ":",
-                                    std::to_string(n + 1).data()));
-                    #endif
+                    SCM_EXCEPTION(CfgException, !is_digit(*ptr) && !is_legal_name_symbol(*ptr),
+                                  "Starting parent definition with symbol '", String(1, *ptr), "' in ", path, ":",
+                                  std::to_string(n + 1).data());
 
                     while(!is_space(*ptr) && ptr != line.cend() && *ptr != ',') {
-                        #ifdef SCM_ASSERTS
-                            SCM_ASSERTS(validate_name_symbol(*ptr),
-                                        "Invalid character '%c' in parent definition in %s:%z",
-                                        *ptr, path.data(), n + 1);
-                        #elif defined SCM_FMT_ASSERTS
-                            SCM_FMT_ASSERTS(validate_name_symbol(*ptr),
-                                           "Invalid character '{}' in parent definition in {}:{}",
-                                           *ptr, path, n + 1);
-                        #else
-                            if (!validate_name_symbol(*ptr))
-                                throw cfg_detls::CfgException(cfg_detls::str_join(
-                                        "Invalid character '", String(1, *ptr), "' in parent definition in ", path, ":",
-                                        std::to_string(n + 1).data()));
-                        #endif
+                        SCM_EXCEPTION(CfgException, validate_name_symbol(*ptr),
+                                      "Invalid character '", String(1, *ptr), "' in parent definition in ", path, ":",
+                                      std::to_string(n + 1).data());
 
                         ++ptr;
                     }
@@ -1000,33 +666,14 @@ namespace cfg_detls {
                     if (skip_spaces_if_no_endl(ptr, line.cend()))
                         break;
 
-                    #ifdef SCM_ASSERTS
-                        SCM_ASSERTS(*ptr == ',', "Missing ',' after parent definition in %s:%z.", path.data(), n + 1);
-                    #elif defined SCM_FMT_ASSERTS
-                        SCM_FMT_ASSERTS(*ptr == ',', "Missing ',' after parent definition in {}:{}.", path, n + 1);
-                    #else
-                        if (*ptr != ',')
-                            throw cfg_detls::CfgException(cfg_detls::str_join(
-                                    "Missing ',' after parent definition in ", path, ":",
-                                    std::to_string(n + 1).data()));
-                    #endif
+                    SCM_EXCEPTION(CfgException, *ptr == ',', "Missing ',' after parent definition in ", path, ":",
+                                  std::to_string(n + 1).data());
 
                     ++ptr;
 
-                    #ifdef SCM_ASSERTS
-                        SCM_ASSERTS(!skip_spaces_if_no_endl(ptr, line.cend()),
-                                    "Missing parent parent definition after ',' in %s:%z.",
-                                    path.data(), n + 1);
-                    #elif defined SCM_FMT_ASSERTS
-                        SCM_FMT_ASSERTS(!skip_spaces_if_no_endl(ptr, line.cend()),
-                                        "Missing parent parent definition after ',' in {}:{}.",
-                                        path, n + 1);
-                    #else
-                        if (skip_spaces_if_no_endl(ptr, line.cend()))
-                            throw cfg_detls::CfgException(cfg_detls::str_join(
-                                    "Missing parent parent definition after ',' in ", path, ":",
-                                    std::to_string(n + 1).data()));
-                    #endif
+                    SCM_EXCEPTION(CfgException, !skip_spaces_if_no_endl(ptr, line.cend()),
+                                  "Missing parent parent definition after ',' in ", path, ":",
+                                  std::to_string(n + 1).data());
                 }
             }
 
@@ -1044,25 +691,187 @@ namespace cfg_detls {
                 if (currentSection)
                     currentSection->add(String(pair.first), var);
                 else {
-                    #ifdef SCM_ASSERTS
-                        SCM_ASSERTS(!cfgData().section(String(cfg_detls::GLOBAL_NAMESPACE)).isExists(String(pair.first)),
-                                    "Duplicate variable '%s' in global namespace in %s:%z",
-                                    String(pair.first).data(), path.data(), n + 1);
-                    #elif defined SCM_FMT_ASSERTS
-                        SCM_FMT_ASSERTS(!cfgData().section(String(cfg_detls::GLOBAL_NAMESPACE)).isExists(String(pair.first)),
-                                        "Duplicate variable '{}' in global namespace in {}:{}",
-                                        pair.first, path, n + 1);
-                    #else
-                        if (cfgData().section(String(cfg_detls::GLOBAL_NAMESPACE)).isExists(String(pair.first)))
-                            throw cfg_detls::CfgException(cfg_detls::str_join(
-                                    "Duplicate variable '", pair.first, "' in global namespace in ", path, ":",
-                                    std::to_string(n + 1).data()));
-                    #endif
+                    SCM_EXCEPTION(CfgException,
+                                  !cfgData().section(String(scm_details::GLOBAL_NAMESPACE)).isExists(String(pair.first)),
+                                  "Duplicate variable '", pair.first, "' in global namespace in ", path, ":",
+                                  std::to_string(n + 1).data());
 
-                    cfgData().addValue(String(cfg_detls::GLOBAL_NAMESPACE), String(pair.first), var);
+                    cfgData().addValue(String(scm_details::GLOBAL_NAMESPACE), String(pair.first), var);
                 }
             }
         }
+    }
+
+    static auto unpack
+            (StrViewCref name, StrViewCref section, StrViewCref str, SizeT required = 0) -> StrViewVector
+    {
+        StrViewVector vec;
+
+        auto ptr   = str.cbegin();
+
+        while (ptr != str.cend()) {
+            if (*ptr == '{') {
+                int entryLevel = 0;
+                auto start = ptr;
+
+                bool onSingleQuotes = false;
+                bool onDoubleQuotes = false;
+
+                for (; ptr != str.cend(); ++ptr) {
+                    if (*ptr == '\'' && !onDoubleQuotes)
+                        onSingleQuotes = !onSingleQuotes;
+
+                    else if (*ptr == '\"' && !onSingleQuotes)
+                        onDoubleQuotes = !onDoubleQuotes;
+
+                    else if (!onSingleQuotes && !onDoubleQuotes) {
+                        if (*ptr == '{') {
+                            ++entryLevel;
+                        } else if (*ptr == '}') {
+                            --entryLevel;
+
+                            if (entryLevel == 0) {
+                                if (ptr + 1 != str.cend()) {
+                                    SCM_EXCEPTION(CfgException, *(ptr + 1) != '}',
+                                                  "Redundant '}' at key '", name, "' in section [", section, "].");
+
+                                    SCM_EXCEPTION(CfgException, *(ptr + 1) == ',',
+                                                  "Missing ',' at key '", name, "' in section [", section, "].");
+                                }
+
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                SCM_EXCEPTION(CfgException, entryLevel == 0,
+                              "Missing close '}' at key '", name, "' in section [", section, "].");
+
+                if (*ptr == '}' && ptr != str.cend())
+                    ++ptr;
+
+
+                vec.emplace_back(str.substr(start - str.cbegin(), ptr - start));
+
+                if (ptr != str.cend())
+                    ++ptr;
+
+            }
+            else {
+                auto start = ptr;
+
+                bool onSingleQuotes = false;
+                bool onDoubleQuotes = false;
+
+                for (; ptr != str.cend(); ++ptr) {
+                    if (*ptr == '\'' && !onDoubleQuotes)
+                        onSingleQuotes = !onSingleQuotes;
+
+                    else if (*ptr == '\"' && !onSingleQuotes)
+                        onDoubleQuotes = !onDoubleQuotes;
+
+                    else if (!onSingleQuotes && !onDoubleQuotes) {
+                        if (*ptr == ',')
+                            break;
+
+                        SCM_EXCEPTION(CfgException, scm_details::validate_keyval(*ptr),
+                                      "Undefined char symbol '", String(1, *ptr), "' at key '", name,
+                                      "' in section [", section, "].");
+                    }
+                }
+
+                vec.emplace_back(str.substr(start - str.cbegin(), ptr - start));
+
+                if (ptr != str.cend())
+                    ++ptr;
+            }
+        }
+
+        if (vec.size() == 1 && vec[0].size() > 1 && vec[0].front() == '{' && vec[0].back() == '}')
+            return unpack(name, section, vec[0].substr(1, vec[0].size() - 2), required);
+
+        SCM_EXCEPTION(CfgException, required == 0 || required == vec.size(),
+                      "Wrong number of values at key '", name, "' in section [", section, "]. Provided ",
+                      std::to_string(vec.size()).data(), ", required ", std::to_string(required).data(), ".");
+
+        return std::move(vec);
+    }
+
+    // Numbers
+    template <typename T>
+    SIA superCast(StrViewCref str, StrViewCref, StrViewCref)
+    -> std::enable_if_t<scm_utils::numbers<T>, T> {
+        return scm_utils::aton<T>(str);
+    }
+
+    // String :)
+    template <typename T>
+    SIA superCast(StrViewCref str, StrViewCref, StrViewCref)
+    -> std::enable_if_t<scm_utils::any_of<T, ScmStrView, ScmStrView, std::string_view, std::string>, T> {
+        return T(str);
+    }
+
+    template <typename T>
+    SIA superCast(StrViewCref str, StrViewCref name, StrViewCref section)
+    -> std::enable_if_t<std::is_same_v<T, bool>, bool> {
+        if (str == "true" || str == "on")
+            return true;
+        else if (str == "false" || str == "off")
+            return false;
+        else
+            SCM_EXCEPTION(CfgException, 0, "Unknown bool value '", str, "' at key '",
+                          name.data(), "' in section [", section.data(), "].");
+        return false; // !?
+    }
+
+    template <typename A, typename T = std::remove_reference_t<decltype(std::declval<A>()[0])>, SizeT _Size = sizeof(A)/sizeof(T)>
+    SIA superCast(StrViewCref str, StrViewCref name, StrViewCref section)
+    -> std::enable_if_t<scm_utils::any_of<A, ScmArray<T, _Size>, std::array<T, _Size>>, A>;
+
+    template <typename A, typename T = std::remove_reference_t<decltype(std::declval<A>()[0])>>
+    SIA superCast(StrViewCref str, StrViewCref name, StrViewCref section)
+    -> std::enable_if_t<scm_utils::any_of<A, ScmVector<T>, std::vector<T>>, A>;
+
+    //
+    template <typename... Ts, SizeT... _Idx>
+    SIA readTupleImpl(StrViewVector& vec, StrViewCref name, StrViewCref section, std::index_sequence<_Idx...>) {
+        return std::make_tuple(superCast<Ts>(vec[_Idx], name, section)...);
+    }
+
+    template <typename T, SizeT... _Idx>
+    SIA readArrayImpl(StrViewVector& vec, StrViewCref name, StrViewCref section, std::index_sequence<_Idx...>) {
+        auto arr = ScmArray<T, sizeof...(_Idx)>{};
+
+        ((arr[_Idx] = superCast<T>(vec[_Idx], name, section)) , ...);
+
+        return arr;
+    }
+
+    template <typename T>
+    SIA readVectorImpl(StrViewVector& vec, StrViewCref name, StrViewCref section) {
+        auto res = ScmVector<T>{};
+
+        for (auto& s : vec)
+            res.push_back(superCast<T>(s, name, section));
+
+        return res;
+    }
+
+    // Array
+    template <typename A, typename T, SizeT _Size>
+    SIA superCast(StrViewCref str, StrViewCref name, StrViewCref section)
+    -> std::enable_if_t<scm_utils::any_of<A, ScmArray<T, _Size>, std::array<T, _Size>>, A> {
+        auto vec = unpack(name, section, str, _Size);
+        return readArrayImpl<T>(vec, name, section, std::make_index_sequence<_Size>());
+    }
+
+    // Vector
+    template <typename A, typename T>
+    SIA superCast(StrViewCref str, StrViewCref name, StrViewCref section)
+    -> std::enable_if_t<scm_utils::any_of<A, ScmVector<T>, std::vector<T>>, A> {
+        auto vec = unpack(name, section, str);
+        return readVectorImpl<T>(vec, name, section);
     }
 
 
@@ -1076,8 +885,10 @@ namespace cfg_detls {
 
 
     void processFileTask() {
-        for (auto& path : cfg_detls::cfg_state().getEntries())
+        for (auto& path : scm_details::cfg_state().getEntries())
             processFileTask(path);
     }
 
-} // namespace cfg_detls
+} // namespace scm_details
+
+#undef SIA

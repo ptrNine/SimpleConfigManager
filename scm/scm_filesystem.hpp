@@ -3,31 +3,13 @@
 #include <exception>
 
 #include "scm_config.hpp"
-#include "scm_types.hpp"
+#include "scm_utils.hpp"
 
 /////////////////////////////////// Details ////////////////////////////////////
 
 namespace scm_fs_dtls {
-    class ScmFsException : public std::exception {
-    public:
-        ScmFsException(ScmString error) : _exc(std::move(error)) {}
-        const char* what() const noexcept override { return _exc.data(); }
-
-    private:
-        ScmString _exc;
-    };
-
-
     inline int _makeDirAbort(const std::string& path, const char* error) {
-#ifdef SCM_ASSERTS
-        SCM_ASSERTS("Can't create directory '%s'. %s", path.data(), error);
-        return -1;
-#elif defined SCM_FMT_ASSERTS
-        SCM_FMT_ASSERTS("Can't create directory '{}'. {}", path, error);
-        return -1;
-#else
-        throw ScmFsException(ScmString("Can't create directory '") + path + "'. " + error);
-#endif
+        SCM_EXCEPTION(scm_utils::ScmFsException, 0, ScmString("Can't create directory '") + path + "'. " + error);
     }
 
     auto _getExeLocation   () -> std::string;
@@ -44,7 +26,7 @@ namespace SCM_NAMESPACE {
 #endif // SCM_NAMESPACE
 
 namespace fs {
-    using FsException = scm_fs_dtls::ScmFsException;
+    using FsException = scm_utils::ScmFsException;
 
     inline auto current_path() -> ScmString {
         return scm_fs_dtls::_getExeLocation();
@@ -52,6 +34,10 @@ namespace fs {
 
     inline void create_dir(const std::string_view& path) {
         scm_fs_dtls::_recursiveMakeDir(path);
+    }
+
+    inline auto default_cfg_path() -> ScmString {
+        return scm_utils::append_path(current_path(), "fs.cfg");
     }
 
 } // namespace fs

@@ -5,37 +5,38 @@
 #define white_space(c) ((c) == ' ' || (c) == '\t')
 #define valid_digit(c) ((c) >= '0' && (c) <= '9')
 
-namespace scm_aton {
+namespace scm_utils {
     template<typename T>
-    auto aton(const char *p) -> std::enable_if_t<std::is_floating_point_v<T>, T> {
+    auto aton(const ScmStrView& str) -> std::enable_if_t<std::is_floating_point_v<T>, T> {
+        auto p = str.cbegin();
 
-        while (white_space(*p)) { ++p; }
+        while (white_space(*p) && p != str.end()) { ++p; }
 
         auto r = static_cast<T>(0);
 
-        //get sign
+        // Get sign
         bool neg = false;
-        if (*p == '-') {
+        if (*p == '-' && p != str.end()) {
             neg = true;
             ++p;
         }
-        else if (*p == '+') {
+        else if (*p == '+' && p != str.end()) {
             neg = false;
             ++p;
         }
 
-        //get the digits before decimal point
-        while (valid_digit(*p)) {
+        // Get the digits before decimal point
+        while (valid_digit(*p) && p != str.end()) {
             r = (r * 10) + (*p - '0');
             ++p;
         }
 
-        //get the digits after decimal point
-        if (*p == '.') {
+        // Get the digits after decimal point
+        if (*p == '.' && p != str.end()) {
             T f = 0.0;
             std::size_t scale = 1;
             ++p;
-            while (valid_digit(*p)) {
+            while (valid_digit(*p) && p != str.end()) {
                 f = (f * 10) + (*p - '0');
                 ++p;
                 scale *= 10;
@@ -43,19 +44,19 @@ namespace scm_aton {
             r += f / static_cast<T>(scale);
         }
 
-        //R_ASSERTF(!read_check, "string '%s' not a number", p);
-
         // Get the digits after the "e"/"E" (exponenet)
-        if (*p == 'e' || *p == 'E') {
+        if ((*p == 'e' || *p == 'E') && p != str.end()) {
             std::ptrdiff_t e = 0;
 
             bool negE = false;
             ++p;
-            if (*p == '-') { negE = true; ++p; }
-            else if (*p == '+') { negE = false; ++p; }
 
-            while (valid_digit(*p)) { e = (e * 10) + (*p - '0'); ++p; }
-            //R_ASSERTF(!read_check, "string '%s' not a number", p);
+            if (p != str.end()) {
+                if      (*p == '-') { negE = true;  ++p; }
+                else if (*p == '+') { negE = false; ++p; }
+            }
+
+            while (valid_digit(*p) && p != str.end()) { e = (e * 10) + (*p - '0'); ++p; }
 
             if (!neg && e > std::numeric_limits<T>::max_exponent10) {
                 e = std::numeric_limits<T>::max_exponent10;
@@ -81,22 +82,20 @@ namespace scm_aton {
     }
 
     template<typename T>
-    auto aton(const char *p) -> std::enable_if_t<std::is_signed_v<T> && std::is_integral_v<T>, T> {
-        while (white_space(*p)) { ++p; }
+    auto aton(const ScmStrView& str) -> std::enable_if_t<std::is_signed_v<T> && std::is_integral_v<T>, T> {
+        auto p = str.cbegin();
+
+        while (white_space(*p) && p != str.end()) { ++p; }
 
         auto r = static_cast<T>(0);
 
         bool neg = false;
-        if (*p == '-') {
-            neg = true;
-            ++p;
-        }
-        else if (*p == '+') {
-            neg = false;
-            ++p;
+        if (p != str.end()) {
+            if      (*p == '-') { neg = true;  ++p; }
+            else if (*p == '+') { neg = false; ++p; }
         }
 
-        while (valid_digit(*p)) {
+        while (valid_digit(*p) && p != str.end()) {
             r = (r * 10) + (*p - '0');
             ++p;
         }
@@ -106,14 +105,16 @@ namespace scm_aton {
     }
 
     template<typename T>
-    auto aton(const char *p) -> std::enable_if_t<std::is_unsigned_v<T>, T> {
-        while (white_space(*p)) { ++p; }
+    auto aton(const ScmStrView& str) -> std::enable_if_t<std::is_unsigned_v<T>, T> {
+        auto p = str.cbegin();
+
+        while (white_space(*p) && p != str.end()) { ++p; }
 
         auto r = static_cast<T>(0);
 
-        if (*p == '+') { ++p; }
+        if (*p == '+' && p != str.end()) { ++p; }
 
-        while (valid_digit(*p)) {
+        while (valid_digit(*p) && p != str.end()) {
             r = (r * 10) + (*p - '0');
             ++p;
         }

@@ -18,7 +18,7 @@ set(SCM_LIB_PATH "${CMAKE_INSTALL_PREFIX}/lib")
 set(SCM_CMAKE_PATH "${SCM_LIB_PATH}/cmake/SCM")
 set(SCM_NAMESPACE scm)
 
-option(SCM_BUILD_TESTS "Build test programs" ON)
+option(SCM_BUILD_TESTS "Build test programs" OFF)
 
 set(SCM_NAMESPACE_DEF "#define SCM_NAMESPACE ${SCM_NAMESPACE}")
 
@@ -60,6 +60,6 @@ configure_file(
 )
 
 if(SCM_BUILD_TESTS)
-    message("Dsadads")
+    message("Build tests")
     add_subdirectory(tests)
 endif()

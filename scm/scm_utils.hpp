@@ -5,6 +5,18 @@
 
 #include "scm_types.hpp"
 
+#ifdef SCM_ASSERTS
+    #define SCM_EXCEPTION(EXCEPTION_TYPE, CONDITION, ...) \
+        SCM_ASSERTS((CONDITION), "%s", scm_utils::str_join(__VA_ARGS__))
+#elif defined SCM_FMT_ASSERTS
+    #define SCM_EXCEPTION(EXCEPTION_TYPE, CONDITION, ...) \
+    SCM_FMT_ASSERTS((CONDITION), "{}", scm_utils::str_join(__VA_ARGS__))
+#else
+    #define SCM_EXCEPTION(EXCEPTION_TYPE, CONDITION, ...)          \
+        if (!(CONDITION))                                          \
+            throw EXCEPTION_TYPE(scm_utils::str_join(__VA_ARGS__))
+#endif
+
 namespace scm_utils {
     template <typename T, typename ... Types>
     constexpr bool any_of = (std::is_same_v<T, Types> || ...);
@@ -23,6 +35,12 @@ namespace scm_utils {
     template <typename T>
     constexpr bool is_string = any_of<T, ScmString, ScmStrView, std::string, std::string_view>;
 
+
+    // Helper function for combine strings
+    template <typename ... ArgT>
+    static auto str_join(const ArgT& ... strs) -> std::string {
+        return (std::string(strs) + ...);
+    }
 
     template <typename S>
     inline auto parent_path(const S& str) -> std::enable_if_t<is_string<S>, ScmString>
@@ -45,9 +63,10 @@ namespace scm_utils {
         return str.substr(0, size);
     }
 
-    template <typename S>
-    inline auto append_path(const S& p1, const S& p2) -> std::enable_if_t<is_string<S>, ScmString>
+    template <typename S, typename S2>
+    inline auto append_path(const S& p1, const S2& str2) -> std::enable_if_t<is_string<S>, ScmString>
     {
+        ScmString p2 = str2;
         if (p1.empty() || p2.empty())
             return p1 + p2;
         else {
@@ -61,14 +80,32 @@ namespace scm_utils {
     }
 
     // File reader exception
-
     class ScmIfsException : public std::exception {
     public:
-        ScmIfsException(ScmString error) : _exc(std::move(error)) {}
+        explicit ScmIfsException(std::string error) : _exc(std::move(error)) {}
         const char* what() const noexcept override { return _exc.data(); }
 
     private:
-        ScmString _exc;
+        std::string _exc;
+    };
+
+    class CfgException : public std::exception {
+    public:
+        explicit CfgException(std::string error) : _exc(std::move(error)) {}
+        const char* what() const noexcept override { return _exc.data(); }
+
+    private:
+        std::string _exc;
+    };
+
+    // Filesystem exception
+    class ScmFsException : public std::exception {
+    public:
+        explicit ScmFsException(std::string error) : _exc(std::move(error)) {}
+        const char* what() const noexcept override { return _exc.data(); }
+
+    private:
+        std::string _exc;
     };
 
     template <typename S>
@@ -77,14 +114,7 @@ namespace scm_utils {
         auto path = ScmString(name);
         auto ifs = std::ifstream(path.data(), std::ios_base::binary | std::ios_base::in);
 
-        #ifdef SCM_ASSERTS
-            SCM_ASSERTS(ifs.is_open(), "Can't open file: \'%s\'", path.data());
-        #elif defined SCM_FMT_ASSERTS
-            SCM_FMT_ASSERTS(ifs.is_open(), "Can't open file: \'{}\'", path);
-        #else
-            if (!ifs.is_open())
-                throw ScmIfsException(ScmString("Can't open file: '") + path + "'");
-        #endif
+        SCM_EXCEPTION(ScmIfsException, ifs.is_open(), "Can't open file: '", path, "'");
 
         ifs.seekg(0, std::ios_base::end);
         auto size = static_cast<ScmSizeT>(ifs.tellg());
@@ -123,6 +153,5 @@ namespace scm_utils {
             vec.emplace_back(str.substr(start, str.size()));
 
         return std::move(vec);
-}
-
+    }
 } // namespace scm_utils
