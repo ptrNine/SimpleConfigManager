@@ -63,15 +63,15 @@ auto scm_fs_dtls::_getExeLocation() -> std::string {
 #include <windows.h>
 #define DE_PATH_MAX 8192
 
-ftl::String GetLastErrorAsString(int rc) {
+std::string GetLastErrorAsString(int rc) {
     if(rc == 0)
         return {};
 
     LPSTR messageBuffer = nullptr;
-    SizeT size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+    std::size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
                                  NULL, rc, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
 
-    auto message = ftl::String(messageBuffer, size);
+    auto message = std::string(messageBuffer, size);
 
     LocalFree(messageBuffer);
 
@@ -79,33 +79,33 @@ ftl::String GetLastErrorAsString(int rc) {
 }
 
 int makeDirAbort(const std::string& path, int rc) {
-    return scm_fs_dtls::_makeDirAbort(path, GetLastErrorAsString(rc));
+    return scm_fs_dtls::_makeDirAbort(path, GetLastErrorAsString(rc).c_str());
 }
 
-int recursiveMakeDir(const std::string_view& path) {
+int scm_fs_dtls::_recursiveMakeDir(const std::string_view& path) {
     if (path.empty() || path == "." || path == "/")
             return 0;
 
     auto findPos = path.rfind('/');
-    if (findPos == path.npos)
+    if (findPos == std::string_view::npos)
         return 0;
 
     auto parent = path.substr(0, findPos);
 
-    if (recursiveMakeDir(parent) == -1 && GetLastError() != ERROR_ALREADY_EXISTS)
+    if (_recursiveMakeDir(parent) == -1 && GetLastError() != ERROR_ALREADY_EXISTS)
         return -1;
 
-	CreateDirectory(std::string(path).c_str(), NULL);
+	CreateDirectory(std::string(path).c_str(), nullptr);
 	auto rc = GetLastError();
 
     return (rc != ERROR_ALREADY_EXISTS && rc != 0) ?
-    makeDirAbort(path, rc) : 0;
+    makeDirAbort(std::string(path), static_cast<int>(rc)) : 0;
 
 }
 
-auto getExeLocation() -> ftl::String {
+auto scm_fs_dtls::_getExeLocation() -> std::string {
     auto result = std::array<wchar_t, DE_PATH_MAX>();
-    auto count  = GetModuleFileNameW(NULL, result.data(), DE_PATH_MAX);
+    auto count  = GetModuleFileNameW(nullptr, result.data(), DE_PATH_MAX);
     result[count] = L'\0';
 
     if (count < 0)

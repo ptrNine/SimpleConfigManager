@@ -415,7 +415,7 @@ namespace SCM_NAMESPACE {
      * Add entry file to loading
      * @param path - path to config entry file
      */
-    inline void addCfgEntry(ScmString& path) {
+    inline void addCfgEntry(const ScmString& path) {
         cfg_detls::cfg_state().addCfgEntry(path);
     }
 

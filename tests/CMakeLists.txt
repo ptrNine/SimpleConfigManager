@@ -45,7 +45,7 @@ include_directories(
 link_directories(${PROJECT_BINARY_DIR})
 
 add_executable(Tests tests.cpp)
-target_link_libraries(Tests Threads::Threads scmfs_static GTest::gtest GTest::gtest_main)
+target_link_libraries(Tests scmfs_static GTest::gtest GTest::gtest_main)
 
 add_test(NAME Tests COMMAND Tests)
 
