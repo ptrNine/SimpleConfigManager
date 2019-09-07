@@ -49,7 +49,7 @@ auto scm_fs_dtls::_getExeLocation() -> std::string {
     for (auto p = result.crbegin() + DE_PATH_MAX - count; p != result.crend() && *p != '/'; ++p)
         --count;
 
-    return {result.data(), static_cast<std::size_t>(count)};
+    return { result.data(), static_cast<std::size_t>(count) };
 }
 
 #undef DE_PATH_MAX

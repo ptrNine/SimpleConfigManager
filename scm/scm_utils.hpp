@@ -7,17 +7,22 @@
 
 #ifdef SCM_ASSERTS
     #define SCM_EXCEPTION(EXCEPTION_TYPE, CONDITION, ...) \
-        SCM_ASSERTS((CONDITION), "%s", scm_utils::str_join(__VA_ARGS__))
+        SCM_ASSERTS((CONDITION), "%s", SCM_NAMESPACE::str_join(__VA_ARGS__))
 #elif defined SCM_FMT_ASSERTS
     #define SCM_EXCEPTION(EXCEPTION_TYPE, CONDITION, ...) \
-    SCM_FMT_ASSERTS((CONDITION), "{}", scm_utils::str_join(__VA_ARGS__))
+        SCM_FMT_ASSERTS((CONDITION), "{}", SCM_NAMESPACE::str_join(__VA_ARGS__))
 #else
     #define SCM_EXCEPTION(EXCEPTION_TYPE, CONDITION, ...)          \
         if (!(CONDITION))                                          \
-            throw EXCEPTION_TYPE(scm_utils::str_join(__VA_ARGS__))
+            throw EXCEPTION_TYPE(SCM_NAMESPACE::str_join(__VA_ARGS__))
 #endif
 
-namespace scm_utils {
+
+#ifndef SCM_NAMESPACE
+    #define SCM_NAMESPACE scm
+#endif
+
+namespace SCM_NAMESPACE {
     /**
      * Input file stream exception
      */
@@ -77,7 +82,6 @@ namespace scm_utils {
     template <typename T>
     constexpr bool integers =
             std::is_integral_v<std::remove_const_t<std::remove_reference_t<T>>> && !std::is_same_v<T, bool>;
-
     /**
      * Check if type 'T' belongs to numbers
      * @tparam T - checked type
@@ -86,11 +90,13 @@ namespace scm_utils {
     constexpr bool numbers = integers<T> || floats<T>;
 
     /**
-     * Check if type 'T' is std::string, std::string_view, ScmString or StmStrView
+     * Check if type 'T' is std::string, std::string_view, ScmString, StmStrView or C-style string
      * @tparam T - checked type
      */
     template <typename T>
-    constexpr bool is_string = any_of<T, ScmString, ScmStrView, std::string, std::string_view>;
+    constexpr bool is_string = any_of<T, ScmString, ScmStrView, std::string, std::string_view> ||
+            (std::is_array_v<T> && std::is_same_v<std::remove_reference_t<decltype(std::declval<T>()[0])>, char>);
+
 
 
     /**
@@ -111,7 +117,7 @@ namespace scm_utils {
      * @return string with deleted child path
      */
     template <typename S>
-    inline auto parent_path(const S& str) -> std::enable_if_t<is_string<S>, ScmString>
+    inline auto parent_path(const S& str) -> std::enable_if_t<is_string<S>, S>
     {
         auto size = str.length();
 
@@ -133,25 +139,27 @@ namespace scm_utils {
 
     /**
      * Append path to string
-     * @tparam S - first string type (also type of returned string)
+     * @tparam S1 - first string type (also type of returned string)
      * @tparam S2 - second string type
-     * @param p1 - path
+     * @param str1 - path
      * @param str2 - appended path
      * @return new path
      */
-    template <typename S, typename S2>
-    inline auto append_path(const S& p1, const S2& str2) -> std::enable_if_t<is_string<S>, ScmString>
+    template <typename S1, typename S2>
+    inline auto append_path(const S1& str1, const S2& str2) -> std::enable_if_t<is_string<S1> && is_string<S2>, ScmString>
     {
-        ScmString p2 = str2;
+        auto p1 = ScmString(str1);
+        auto p2 = ScmString(str2);
+
         if (p1.empty() || p2.empty())
             return p1 + p2;
         else {
             if (p1.back() == '/' && p2.front() == '/')
-                return ScmString(p1 + (p2.data() + 1));
+                return p1 + (p2.data() + 1);
             else if (p1.back() == '/' || p2.front() == '/')
-                return ScmString(p1 + p2);
+                return p1 + p2;
             else
-                return ScmString(p1 + '/' + p2);
+                return p1 + '/' + p2;
         }
     }
 
@@ -214,4 +222,14 @@ namespace scm_utils {
 
         return std::move(vec);
     }
-} // namespace scm_utils
+} // namespace SCM_NAMESPACE
+
+namespace scm_details {
+    auto unpack(const ScmStrView& name, const ScmStrView& section, const ScmStrView& str, std::size_t required) -> ScmVector<ScmStrView>;
+}
+
+#define SCM_SUPERCAST() \
+superCast(const ScmStrView& str, const ScmStrView& name, const ScmStrView& section)
+
+#define SCM_UNPACK(REQUIRED) \
+unpack(name, section, str, REQUIRED)

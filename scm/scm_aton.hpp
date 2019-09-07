@@ -5,7 +5,11 @@
 #define white_space(c) ((c) == ' ' || (c) == '\t')
 #define valid_digit(c) ((c) >= '0' && (c) <= '9')
 
-namespace scm_utils {
+#ifndef SCM_NAMESPACE
+    #define SCM_NAMESPACE scm
+#endif
+
+namespace SCM_NAMESPACE {
     template<typename T>
     auto aton(const ScmStrView& str) -> std::enable_if_t<std::is_floating_point_v<T>, T> {
         auto p = str.cbegin();
@@ -126,7 +130,7 @@ namespace scm_utils {
     inline auto aton(const char* p, T& value) {
         value = aton<T>(p);
     }
-}
+} // namespace SCM_NAMESPACE
 
 #undef white_space
 #undef valid_digit

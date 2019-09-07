@@ -1,4 +1,34 @@
 #include <gtest/gtest.h>
+
+#define SCM_NAMESPACE cfg
+
+#include <scm/scm_utils.hpp>
+#include <scm/scm_aton.hpp>
+
+
+template <typename T>
+class Vector2d {
+    T _x, _y;
+
+public:
+    using Type = T;
+    Vector2d(T ix, T iy): _x(ix), _y(iy) {}
+
+    auto& x() const { return _x; }
+    auto& y() const { return _y; }
+    auto& x() { return _x; }
+    auto& y() { return _y; }
+};
+
+namespace scm_details {
+    template<typename A, typename T = typename A::Type>
+    auto SCM_SUPERCAST() -> std::enable_if_t<cfg::any_of<A, Vector2d<T>>, A> {
+        auto vec = SCM_UNPACK(2);
+        return Vector2d(cfg::aton<T>(vec[0]), cfg::aton<T>(vec[1]));
+    }
+}
+
+
 #include <scm/scm.hpp>
 
 using U32 = uint32_t;
@@ -26,15 +56,11 @@ ASSERT_EQ      (cfg::read<bool>    ("fifteen", SECT_NAME),  true); \
 ASSERT_EQ      (cfg::read<bool>    ("sixteen", SECT_NAME),  false)
 
 TEST(ConfigTests, TestSection) {
-    namespace cfg = SCM_NAMESPACE;
+    auto path = cfg::append_path(cfg::fs::current_path(), String("test.cfg"));
 
-    auto test_config = scm_utils::append_path(cfg::fs::current_path(), String("test.cfg"));
-    cfg::resetCfgEntries();
-    cfg::addCfgEntry(test_config);
-
+    cfg::reload(path);
 
     // Global section
-
     ASSERT_EQ      (cfg::read<U32>     ("g_one"),      100);
     ASSERT_EQ      (cfg::read<S32>     ("g_two"),      -101);
     ASSERT_EQ      (cfg::read<U32>     ("g_three"),    102);
@@ -105,7 +131,12 @@ TEST(ConfigTests, TestSection) {
             }
     };
     ASSERT_EQ(inttrplvector, test3);
+
+    auto vec2d = cfg::read<Vector2d<U32>>("intvec2", "test_section_multi1");
+    ASSERT_EQ(vec2d.x(), 10);
+    ASSERT_EQ(vec2d.y(), 20);
 }
+
 
 int main(int argc, char** argv) {
     testing::InitGoogleTest(&argc, argv);

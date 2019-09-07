@@ -11,6 +11,7 @@ set(ScmIncludes
         scm/scm_filesystem.hpp
         scm/scm_types.hpp
         scm/scm_utils.hpp
+        scm/scm_details_inl.hpp
 )
 
 set(SCM_INCLUDE_PATH "${CMAKE_INSTALL_PREFIX}/include/scm")
@@ -20,12 +21,6 @@ set(SCM_NAMESPACE scm)
 
 option(SCM_BUILD_TESTS "Build test programs" OFF)
 
-set(SCM_NAMESPACE_DEF "#define SCM_NAMESPACE ${SCM_NAMESPACE}")
-
-configure_file(
-        scm/scm_config.hpp.in
-        "${PROJECT_BINARY_DIR}/scm/scm_config.hpp" @ONLY
-)
 include_directories(${PROJECT_BINARY_DIR}/scm)
 
 
