@@ -14,15 +14,14 @@ set(ScmIncludes
         scm/scm_details_inl.hpp
 )
 
-set(SCM_INCLUDE_PATH "${CMAKE_INSTALL_PREFIX}/include/scm")
+set(SCM_INCLUDE_PATH "${CMAKE_INSTALL_PREFIX}/include")
+set(SCM_EXAMPLES_INSTALL_DIR "${CMAKE_PREFIX_PATH}/share/scm-examples")
 set(SCM_LIB_PATH "${CMAKE_INSTALL_PREFIX}/lib")
 set(SCM_CMAKE_PATH "${SCM_LIB_PATH}/cmake/SCM")
 set(SCM_NAMESPACE scm)
 
 option(SCM_BUILD_TESTS "Build test programs" OFF)
-
-include_directories(${PROJECT_BINARY_DIR}/scm)
-
+option(SCM_BUILD_EXAMPLES "Build example programs" ON)
 
 add_library(scmfs_object OBJECT scm/scm_filesystem.cpp)
 set_property(TARGET scmfs_object PROPERTY POSITION_INDEPENDENT_CODE 1)
@@ -35,7 +34,7 @@ install(TARGETS scmfs scmfs_static
         EXPORT SCMExports
 )
 install(EXPORT SCMExports DESTINATION ${SCM_CMAKE_PATH})
-install(FILES ${ScmIncludes} ${PROJECT_BINARY_DIR}/scm/scm_config.hpp DESTINATION ${SCM_INCLUDE_PATH})
+install(FILES ${ScmIncludes} ${PROJECT_BINARY_DIR}/scm/scm_config.hpp DESTINATION ${SCM_INCLUDE_PATH}/scm)
 
 install(
     FILES
@@ -57,4 +56,9 @@ configure_file(
 if(SCM_BUILD_TESTS)
     message("Build tests")
     add_subdirectory(tests)
+endif()
+
+if(SCM_BUILD_EXAMPLES)
+    message("Build examples")
+    add_subdirectory(examples)
 endif()

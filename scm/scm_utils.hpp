@@ -225,11 +225,46 @@ namespace SCM_NAMESPACE {
 } // namespace SCM_NAMESPACE
 
 namespace scm_details {
+    using StrViewCref = const ScmStrView&;
+
     auto unpack(const ScmStrView& name, const ScmStrView& section, const ScmStrView& str, std::size_t required) -> ScmVector<ScmStrView>;
+
+    template <typename T>
+    auto superCast(StrViewCref str, StrViewCref, StrViewCref)
+    -> std::enable_if_t<SCM_NAMESPACE::numbers<T>, T>;
+
+    template <typename T>
+    auto superCast(StrViewCref str, StrViewCref, StrViewCref)
+    -> std::enable_if_t<SCM_NAMESPACE::any_of<T, ScmString, ScmStrView, std::string_view, std::string>, T>;
+
+    template <typename T>
+    auto superCast(StrViewCref str, StrViewCref name, StrViewCref section)
+    -> std::enable_if_t<std::is_same_v<T, bool>, bool>;
+
+    template <typename A, typename T = std::remove_reference_t<decltype(std::declval<A>()[0])>, ScmSizeT _Size = sizeof(A)/sizeof(T)>
+    auto superCast(StrViewCref str, StrViewCref name, StrViewCref section)
+    -> std::enable_if_t<SCM_NAMESPACE::any_of<A, ScmArray<T, _Size>, std::array<T, _Size>>, A>;
+
+    template <typename A, typename T = std::remove_reference_t<decltype(std::declval<A>()[0])>>
+    auto superCast(StrViewCref str, StrViewCref name, StrViewCref section)
+    -> std::enable_if_t<SCM_NAMESPACE::any_of<A, ScmVector<T>, std::vector<T>>, A>;
+
+    template <typename A, typename T, ScmSizeT _Size>
+    auto superCast(StrViewCref str, StrViewCref name, StrViewCref section)
+    -> std::enable_if_t<SCM_NAMESPACE::any_of<A, ScmArray<T, _Size>, std::array<T, _Size>>, A>;
+
+    template <typename A, typename T>
+    auto superCast(StrViewCref str, StrViewCref name, StrViewCref section)
+    -> std::enable_if_t<SCM_NAMESPACE::any_of<A, ScmVector<T>, std::vector<T>>, A>;
 }
 
 #define SCM_SUPERCAST() \
 superCast(const ScmStrView& str, const ScmStrView& name, const ScmStrView& section)
 
-#define SCM_UNPACK(REQUIRED) \
-unpack(name, section, str, REQUIRED)
+#define SCM_SUPERCAST_ARGS name, section
+
+/**
+ * Unpack list of values from string
+ * @param REQUIRED - numbers of required values (0 if any number)
+ */
+#define SCM_UNPACK(REQUIRED) unpack(name, section, str, REQUIRED)

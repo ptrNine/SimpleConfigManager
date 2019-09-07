@@ -237,7 +237,7 @@ namespace scm_details {
     // String :)
     template <typename T>
     auto superCast(StrViewCref str, StrViewCref, StrViewCref)
-    -> std::enable_if_t<SCM_NAMESPACE::any_of<T, ScmStrView, ScmStrView, std::string_view, std::string>, T> {
+    -> std::enable_if_t<SCM_NAMESPACE::any_of<T, ScmString, ScmStrView, std::string_view, std::string>, T> {
         return T(str);
     }
 
@@ -253,14 +253,6 @@ namespace scm_details {
                           name.data(), "' in section [", section.data(), "].");
         return false; // !?
     }
-
-    template <typename A, typename T = std::remove_reference_t<decltype(std::declval<A>()[0])>, SizeT _Size = sizeof(A)/sizeof(T)>
-    auto superCast(StrViewCref str, StrViewCref name, StrViewCref section)
-    -> std::enable_if_t<SCM_NAMESPACE::any_of<A, ScmArray<T, _Size>, std::array<T, _Size>>, A>;
-
-    template <typename A, typename T = std::remove_reference_t<decltype(std::declval<A>()[0])>>
-    auto superCast(StrViewCref str, StrViewCref name, StrViewCref section)
-    -> std::enable_if_t<SCM_NAMESPACE::any_of<A, ScmVector<T>, std::vector<T>>, A>;
 
     //
     template <typename... Ts, SizeT... _Idx>

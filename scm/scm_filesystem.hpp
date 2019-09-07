@@ -22,14 +22,26 @@ namespace scm_fs_dtls {
 
 namespace SCM_NAMESPACE {
     namespace fs {
+        /**
+         * Return executable path
+         * @return string with executable path
+         */
         inline auto current_path() -> ScmString {
             return scm_fs_dtls::_getExeLocation();
         }
 
+        /**
+         * Recursive create dir
+         * @param path - path for creation
+         */
         inline void create_dir(const std::string_view &path) {
             scm_fs_dtls::_recursiveMakeDir(path);
         }
 
+        /**
+         * Return default entry config file path
+         * @return string with executable dir + fs.cfg
+         */
         inline auto default_cfg_path() -> ScmString {
             return append_path(current_path(), "fs.cfg");
         }
