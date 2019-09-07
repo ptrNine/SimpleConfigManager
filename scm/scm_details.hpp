@@ -294,6 +294,11 @@ namespace scm_details {
         auto vec = unpack(name, section, str, 0);
         return readVectorImpl<T>(vec, name, section);
     }
+
+    template <typename T>
+    constexpr bool no_str_view_or_c_str = SCM_NAMESPACE::is_c_array<T> ?
+            !std::is_same_v<SCM_NAMESPACE::remove_const_ref<decltype(std::declval<T>()[0])>, ScmChar8> :
+            !SCM_NAMESPACE::any_of<T, StrView, std::string_view>;
 } // namespace scm_details
 
 

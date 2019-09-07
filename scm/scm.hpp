@@ -35,6 +35,34 @@ namespace SCM_NAMESPACE {
     }
 
     /**
+     * Check is section exists
+     * @param section - section for checking
+     * @return true if exists otherwise false
+     */
+    IA is_section_exists(const ScmStrView& section) {
+        using namespace scm_details;
+
+        return cfg_data().isSectionExists(String(section));
+    }
+
+    /**
+     * Check is key exists on section
+     * @param key - key string
+     * @param section - section string
+     * @return true if key exists in section, false if not or section doesn't exist too
+     */
+    IA is_key_exists(const ScmStrView& key, const ScmStrView& section = scm_details::GLOBAL_NAMESPACE) {
+        using namespace scm_details;
+
+        auto sect = cfg_data().sectionOpt(String(section));
+
+        if (sect)
+            return sect->isExists(String(key));
+        else
+            return false;
+    }
+
+    /**
      * Read one value from cfg
      * @tparam T - value type
      * @param key - value key
@@ -129,7 +157,9 @@ namespace SCM_NAMESPACE {
      * @return Value with T type (tuple with <T, Ts...>) or default_val (tuple of default_vals) if key or section doesn't exists
      */
     template <typename T, typename... Ts>
-    IA read_ie(const ScmStrView& key, const T& default_val, const Ts& ... default_vals) {
+    IA read_ie(const ScmStrView& key, const T& default_val, const Ts& ... default_vals,
+               std::enable_if_t<scm_details::no_str_view_or_c_str<T>>* = 0)
+    {
         using namespace scm_details;
 
         return read_ie<T, Ts...>(key, GLOBAL_NAMESPACE, default_val, default_vals...);
@@ -198,10 +228,17 @@ namespace SCM_NAMESPACE {
      * @return Value with T type (tuple with <T, Ts...>) or default_val (tuple of default_vals) if key doesn't exists
      */
     template <typename T, typename... Ts>
-    IA read_ike(const ScmStrView& key, const T& default_val, const Ts& ... default_vals) {
+    IA read_ike(const ScmStrView& key, const T& default_val, const Ts& ... default_vals,
+                std::enable_if_t<scm_details::no_str_view_or_c_str<T>>* = 0)
+    {
         using namespace scm_details;
 
         return read_ike<T, Ts...>(key, GLOBAL_NAMESPACE, default_val, default_vals...);
+    }
+
+    template <typename T>
+    IA set(T& val, const ScmStrView& key, const ScmStrView& section = scm_details::GLOBAL_NAMESPACE) {
+        val = read<T>(key, section);
     }
 } // namespace SCM_NAMESPACE
 

@@ -9,6 +9,7 @@
 namespace scm_fs_dtls {
     inline int _makeDirAbort(const std::string& path, const char* error) {
         SCM_EXCEPTION(SCM_NAMESPACE::ScmFsException, 0, ScmString("Can't create directory '") + path + "'. " + error);
+        return 0;
     }
 
     auto _getExeLocation   () -> std::string;

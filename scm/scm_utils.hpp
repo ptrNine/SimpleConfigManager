@@ -97,7 +97,20 @@ namespace SCM_NAMESPACE {
     constexpr bool is_string = any_of<T, ScmString, ScmStrView, std::string, std::string_view> ||
             (std::is_array_v<T> && std::is_same_v<std::remove_reference_t<decltype(std::declval<T>()[0])>, char>);
 
+    /**
+     * Check if type 'T' is C-style array
+     * @tparam T - checked type
+     */
+    template <typename T>
+    constexpr bool is_c_array = std::is_array_v<std::remove_const_t<std::remove_reference_t<T>>>;
 
+
+    /**
+     * Remove const and reference from type
+     * @tparam T - type
+     */
+    template <typename T>
+    using remove_const_ref = std::remove_const_t<std::remove_reference_t<T>>;
 
     /**
      * Combine all accepted strings
