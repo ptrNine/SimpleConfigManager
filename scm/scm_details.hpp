@@ -287,6 +287,34 @@ namespace scm_details {
         return readArrayImpl<T>(vec, name, section, std::make_index_sequence<_Size>());
     }
 
+    template <typename T, SizeT... _Idx>
+    auto readTupleTuple(StrViewCref str, StrViewCref name, StrViewCref section, std::index_sequence<_Idx...>) {
+        auto vec = unpack(name, section, str, sizeof...(_Idx));
+        return std::make_tuple(
+                superCast<SCM_NAMESPACE::remove_const_ref<
+                             decltype(std::get<_Idx>(std::declval<T>()))
+                          >>(vec[_Idx], name, section)...);
+    }
+
+    // Tuple
+    template <typename T>
+    auto superCast(StrViewCref str, StrViewCref name, StrViewCref section)
+    -> std::enable_if_t<SCM_NAMESPACE::Is_specialization_of<T, std::tuple>::value, T> {
+        return readTupleTuple<T>(str, name, section, std::make_index_sequence<std::tuple_size_v<T>>());
+    }
+
+    // Pair
+    template <typename T>
+    auto superCast(StrViewCref str, StrViewCref name, StrViewCref section)
+    -> std::enable_if_t<
+            SCM_NAMESPACE::Is_specialization_of<T, std::pair>::value ||
+            SCM_NAMESPACE::Is_specialization_of<T, ScmPair>::value, T>
+    {
+        auto vec = unpack(name, section, str, 2);
+        return T(superCast<decltype(std::declval<T>().first)>(vec[0], name, section),
+                 superCast<decltype(std::declval<T>().first)>(vec[1], name, section));
+    }
+
     // Vector
     template <typename A, typename T>
     auto superCast(StrViewCref str, StrViewCref name, StrViewCref section)

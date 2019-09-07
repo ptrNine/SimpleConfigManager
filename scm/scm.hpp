@@ -236,9 +236,74 @@ namespace SCM_NAMESPACE {
         return read_ike<T, Ts...>(key, GLOBAL_NAMESPACE, default_val, default_vals...);
     }
 
+    /**
+     * Set value from config
+     * @tparam T - value type
+     * @param val - value to be set
+     * @param key - key string
+     * @param section - section string (optional)
+     */
     template <typename T>
     IA set(T& val, const ScmStrView& key, const ScmStrView& section = scm_details::GLOBAL_NAMESPACE) {
         val = read<T>(key, section);
+    }
+
+    /**
+     * Set value from config if section or key exists. Otherwise set default_value
+     * @tparam T - value type
+     * @tparam D - default value type
+     * @param val - value to be set
+     * @param key - key string
+     * @param section - section string
+     * @param default_value - default value
+     */
+    template <typename T, typename D>
+    IA set_ie(T& val, const ScmStrView& key, const ScmStrView& section, const D& default_value) {
+        val = read_ie<T>(key, section, T(default_value));
+    }
+
+    /**
+     * Set value from config global section if section or key exists. Otherwise set default_value
+     * @tparam T - value type
+     * @tparam D - default value type
+     * @param val - value to be set
+     * @param key - key string
+     * @param default_value - default value
+     */
+    template <typename T, typename D>
+    IA set_ie(T& val, const ScmStrView& key, const D& default_value) {
+        using namespace scm_details;
+
+        set_ie<T>(val, key, GLOBAL_NAMESPACE, T(default_value));
+    }
+
+    /**
+     * Set value from config if key exists. Otherwise set default_value
+     * @tparam T - value type
+     * @tparam D - default value type
+     * @param val - value to be set
+     * @param key - key string
+     * @param section - section string
+     * @param default_value - default value
+     */
+    template <typename T, typename D>
+    IA set_ike(T& val, const ScmStrView& key, const ScmStrView& section, const D& default_value) {
+        val = read_ike<T>(key, section, T(default_value));
+    }
+
+    /**
+     * Set value from config global section if key exists. Otherwise set default_value
+     * @tparam T - value type
+     * @tparam D - default value type
+     * @param val - value to be set
+     * @param key - key string
+     * @param default_value - default value
+     */
+    template <typename T, typename D>
+    IA set_ike(T& val, const ScmStrView& key, const D& default_value) {
+        using namespace scm_details;
+
+        set_ike<T>(val, key, GLOBAL_NAMESPACE, T(default_value));
     }
 } // namespace SCM_NAMESPACE
 

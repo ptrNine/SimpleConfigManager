@@ -112,6 +112,14 @@ namespace SCM_NAMESPACE {
     template <typename T>
     using remove_const_ref = std::remove_const_t<std::remove_reference_t<T>>;
 
+
+    template <typename T, template <typename...> class Template>
+    struct Is_specialization_of : std::false_type {};
+
+    template <template <typename...> class Template, typename... Args>
+    struct Is_specialization_of<Template<Args...>, Template> : std::true_type {};
+
+
     /**
      * Combine all accepted strings
      * @tparam ArgT - types of strings
