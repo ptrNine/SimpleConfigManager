@@ -24,7 +24,7 @@ namespace scm_details {
     template<typename A, typename T = typename A::Type>
     auto SCM_SUPERCAST() -> std::enable_if_t<cfg::any_of<A, Vector2d<T>>, A> {
         auto vec = SCM_UNPACK(2);
-        return Vector2d(cfg::aton<T>(vec[0]), cfg::aton<T>(vec[1]));
+        return Vector2d(cfg::aton<T>(vec[0], SCM_SUPERCAST_ARGS), cfg::aton<T>(vec[1], SCM_SUPERCAST_ARGS));
     }
 }
 
@@ -135,6 +135,22 @@ TEST(ConfigTests, TestSection) {
     auto vec2d = cfg::read<Vector2d<U32>>("intvec2", "test_section_multi1");
     ASSERT_EQ(vec2d.x(), 10);
     ASSERT_EQ(vec2d.y(), 20);
+}
+
+TEST(ConfigTests, Parser) {
+    auto path = cfg::append_path(cfg::fs::current_path(), "parser_test/valid/1.cfg");
+
+    cfg::reload(path);
+
+    auto [f1, f2, f3] = cfg::read<double, double, double>("global_val");
+
+    ASSERT_FLOAT_EQ(f1, 141.34E-5);
+    ASSERT_FLOAT_EQ(f2, +228.666E+5);
+    ASSERT_FLOAT_EQ(f3, 150.01E6);
+    ASSERT_EQ(cfg::read<std::string>("val", "dummy5"), "its a string");
+    ASSERT_EQ(cfg::read<std::string>("str", "dummy6"), "thesewordswillprintstogether");
+    ASSERT_EQ(cfg::read<std::string>("path", "dummy7"), "/home/ptrnine/desktop");
+    ASSERT_EQ(cfg::read<std::string>("not_path", "dummy7"), "/ $p1 / $p2 / $dummy2:p3");
 }
 
 

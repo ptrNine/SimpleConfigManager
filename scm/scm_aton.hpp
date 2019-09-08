@@ -1,6 +1,7 @@
 #pragma once
 
 #include <type_traits>
+#include "scm_utils.hpp"
 
 #define white_space(c) ((c) == ' ' || (c) == '\t')
 #define valid_digit(c) ((c) >= '0' && (c) <= '9')
@@ -11,7 +12,9 @@
 
 namespace SCM_NAMESPACE {
     template<typename T>
-    auto aton(const ScmStrView& str) -> std::enable_if_t<std::is_floating_point_v<T>, T> {
+    auto aton(const ScmStrView& str, const ScmStrView& name, const ScmStrView& section)
+    -> std::enable_if_t<std::is_floating_point_v<T>, T>
+    {
         auto p = str.cbegin();
 
         while (white_space(*p) && p != str.end()) { ++p; }
@@ -34,6 +37,10 @@ namespace SCM_NAMESPACE {
             r = (r * 10) + (*p - '0');
             ++p;
         }
+
+        SCM_EXCEPTION(ScmAtonException, p != str.cbegin(),
+                      "Invalid digit '", std::string(1, *p), "' in float '",
+                      name, "' in section [", section, "]");
 
         // Get the digits after decimal point
         if (*p == '.' && p != str.end()) {
@@ -60,7 +67,13 @@ namespace SCM_NAMESPACE {
                 else if (*p == '+') { negE = false; ++p; }
             }
 
+            auto st = p;
+
             while (valid_digit(*p) && p != str.end()) { e = (e * 10) + (*p - '0'); ++p; }
+
+            SCM_EXCEPTION(ScmAtonException, p != st,
+                          "Missing number after exponent in float '",
+                          name, "' in section [", section, "]");
 
             if (!neg && e > std::numeric_limits<T>::max_exponent10) {
                 e = std::numeric_limits<T>::max_exponent10;
@@ -81,12 +94,18 @@ namespace SCM_NAMESPACE {
             }
         }
 
+        SCM_EXCEPTION(ScmAtonException, p == str.end() || valid_digit(*p),
+                      "Invalid digit '", std::string(1, *p), "' in float '",
+                      name, "' in section [", section, "]");
+
         if (neg) { r = -r; }
         return r;
     }
 
     template<typename T>
-    auto aton(const ScmStrView& str) -> std::enable_if_t<std::is_signed_v<T> && std::is_integral_v<T>, T> {
+    auto aton(const ScmStrView& str, const ScmStrView& name, const ScmStrView& section)
+    -> std::enable_if_t<std::is_signed_v<T> && std::is_integral_v<T>, T>
+    {
         auto p = str.cbegin();
 
         while (white_space(*p) && p != str.end()) { ++p; }
@@ -104,12 +123,18 @@ namespace SCM_NAMESPACE {
             ++p;
         }
 
+        SCM_EXCEPTION(ScmAtonException, p == str.end() || valid_digit(*p),
+                      "Invalid digit '", std::string(1, *p), "' in integer '",
+                      name, "' in section [", section, "]");
+
         if (neg) { r = -r; }
         return r;
     }
 
     template<typename T>
-    auto aton(const ScmStrView& str) -> std::enable_if_t<std::is_unsigned_v<T>, T> {
+    auto aton(const ScmStrView& str, const ScmStrView& name, const ScmStrView& section)
+    -> std::enable_if_t<std::is_unsigned_v<T>, T>
+    {
         auto p = str.cbegin();
 
         while (white_space(*p) && p != str.end()) { ++p; }
@@ -123,12 +148,11 @@ namespace SCM_NAMESPACE {
             ++p;
         }
 
-        return r;
-    }
+        SCM_EXCEPTION(ScmAtonException, p == str.end() || valid_digit(*p),
+                      "Invalid digit '", std::string(1, *p), "' in unsigned integer '",
+                      name, "' in section [", section, "]");
 
-    template <typename T>
-    inline auto aton(const char* p, T& value) {
-        value = aton<T>(p);
+        return r;
     }
 } // namespace SCM_NAMESPACE
 

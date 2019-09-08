@@ -60,6 +60,18 @@ namespace SCM_NAMESPACE {
     };
 
     /**
+     * Aton exception
+     */
+    class ScmAtonException : public std::exception {
+    public:
+        explicit ScmAtonException(std::string error) : _exc(std::move(error)) {}
+        const char* what() const noexcept override { return _exc.data(); }
+
+    private:
+        std::string _exc;
+    };
+
+    /**
      * Check if type 'T' belongs to one of types 'Types'
      * @tparam T - checked type
      * @tparam Types - all valid types

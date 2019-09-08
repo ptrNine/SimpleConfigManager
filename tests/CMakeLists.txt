@@ -53,3 +53,8 @@ configure_file(
         ${PROJECT_SOURCE_DIR}/test.cfg
         ${PROJECT_BINARY_DIR}/test.cfg COPYONLY
 )
+
+configure_file(
+        ${PROJECT_SOURCE_DIR}/parser_test/valid/1.cfg
+        ${PROJECT_BINARY_DIR}/parser_test/valid/1.cfg COPYONLY
+)

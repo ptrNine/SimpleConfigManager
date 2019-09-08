@@ -225,13 +225,9 @@ namespace scm_details {
 
     // Numbers
     template <typename T>
-    auto superCast(StrViewCref str, StrViewCref, StrViewCref)
+    auto superCast(StrViewCref str, StrViewCref name, StrViewCref section)
     -> std::enable_if_t<SCM_NAMESPACE::numbers<T>, T> {
-        #ifdef SCM_NAMESPACE
-            return SCM_NAMESPACE::aton<T>(str);
-        #else
-            return scm::aton<T>(str);
-        #endif
+        return SCM_NAMESPACE::aton<T>(str, name, section);
     }
 
     // String :)
