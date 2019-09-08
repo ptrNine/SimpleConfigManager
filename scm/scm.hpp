@@ -158,7 +158,7 @@ namespace SCM_NAMESPACE {
      */
     template <typename T, typename... Ts>
     IA read_ie(const ScmStrView& key, const T& default_val, const Ts& ... default_vals,
-               std::enable_if_t<scm_details::no_str_view_or_c_str<T>>* = 0)
+               std::enable_if_t<scm_details::no_str_view_or_c_array<T>>* = 0)
     {
         using namespace scm_details;
 
@@ -229,7 +229,7 @@ namespace SCM_NAMESPACE {
      */
     template <typename T, typename... Ts>
     IA read_ike(const ScmStrView& key, const T& default_val, const Ts& ... default_vals,
-                std::enable_if_t<scm_details::no_str_view_or_c_str<T>>* = 0)
+                std::enable_if_t<scm_details::no_str_view_or_c_array<T>>* = 0)
     {
         using namespace scm_details;
 
@@ -307,6 +307,24 @@ namespace SCM_NAMESPACE {
     }
 } // namespace SCM_NAMESPACE
 
+
+#define SCM_SET(VALUE, SECTION) \
+SCM_NAMESPACE::set(_##VALUE, #VALUE, (SECTION))
+
+#define SCM_SET_CUR(VALUE) \
+SCM_NAMESPACE::set(_##VALUE, #VALUE, scm_current_sect)
+
+#define SCM_SET_IE(VALUE, SECTION, DEFAULT) \
+SCM_NAMESPACE::set_ie(_##VALUE, #VALUE, (SECTION), (DEFAULT))
+
+#define SCM_SET_IE_CUR(VALUE, DEFAULT) \
+SCM_NAMESPACE::set_ie(_##VALUE, #VALUE, scm_current_sect, (DEFAULT))
+
+#define SCM_SET_IKE(VALUE, SECTION, DEFAULT) \
+SCM_NAMESPACE::set_ike(_##VALUE, #VALUE, (SECTION), (DEFAULT))
+
+#define SCM_SET_IKE_CUR(VALUE, DEFAULT) \
+SCM_NAMESPACE::set_ike(_##VALUE, #VALUE, scm_current_sect, (DEFAULT))
 
 #undef IA // inline auto
 #undef IS_WHITE_SPACE

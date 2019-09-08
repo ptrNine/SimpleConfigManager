@@ -28,4 +28,5 @@ scm_add_examples(
         custom_typedefs
         custom_namespace
         custom_assert
+        example1
 )

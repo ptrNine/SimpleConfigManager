@@ -324,9 +324,8 @@ namespace scm_details {
     }
 
     template <typename T>
-    constexpr bool no_str_view_or_c_str = SCM_NAMESPACE::is_c_array<T> ?
-            !std::is_same_v<SCM_NAMESPACE::remove_const_ref<decltype(std::declval<T>()[0])>, ScmChar8> :
-            !SCM_NAMESPACE::any_of<T, StrView, std::string_view>;
+    constexpr bool no_str_view_or_c_array =
+            !SCM_NAMESPACE::any_of<T, StrView, std::string_view> && !SCM_NAMESPACE::is_c_array<T>;
 } // namespace scm_details
 
 

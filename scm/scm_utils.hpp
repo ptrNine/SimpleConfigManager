@@ -277,6 +277,16 @@ namespace scm_details {
     template <typename A, typename T>
     auto superCast(StrViewCref str, StrViewCref name, StrViewCref section)
     -> std::enable_if_t<SCM_NAMESPACE::any_of<A, ScmVector<T>, std::vector<T>>, A>;
+
+    template <typename T>
+    auto superCast(StrViewCref str, StrViewCref name, StrViewCref section)
+    -> std::enable_if_t<SCM_NAMESPACE::Is_specialization_of<T, std::tuple>::value, T>;
+
+    template <typename T>
+    auto superCast(StrViewCref str, StrViewCref name, StrViewCref section)
+    -> std::enable_if_t<
+            SCM_NAMESPACE::Is_specialization_of<T, std::pair>::value ||
+            SCM_NAMESPACE::Is_specialization_of<T, ScmPair>::value, T>;
 }
 
 #define SCM_SUPERCAST() \
