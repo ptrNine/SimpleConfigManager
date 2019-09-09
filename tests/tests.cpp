@@ -151,6 +151,23 @@ TEST(ConfigTests, Parser) {
     ASSERT_EQ(cfg::read<std::string>("str", "dummy6"), "thesewordswillprintstogether");
     ASSERT_EQ(cfg::read<std::string>("path", "dummy7"), "/home/ptrnine/desktop");
     ASSERT_EQ(cfg::read<std::string>("not_path", "dummy7"), "/ $p1 / $p2 / $dummy2:p3");
+
+    std::vector<int> val1, val2, val3, val4;
+    std::vector<int> t1 = { 1, 2, 3 };
+    std::vector<int> t2 = { 4 };
+    std::vector<int> t3 = { 1, 2, 3, 4 };
+    std::vector<int> t4 = { 1, 3, 4 };
+    auto scm_current_sect = "valid_multi_values_int";
+
+    SCM_SET_CUR(val1);
+    SCM_SET_CUR(val2);
+    SCM_SET_CUR(val3);
+    SCM_SET_CUR(val4);
+
+    ASSERT_EQ(val1, t1);
+    ASSERT_EQ(val2, t2);
+    ASSERT_EQ(val3, t3);
+    ASSERT_EQ(val4, t4);
 }
 
 

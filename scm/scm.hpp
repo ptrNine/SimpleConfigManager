@@ -307,24 +307,121 @@ namespace SCM_NAMESPACE {
     }
 } // namespace SCM_NAMESPACE
 
-
-#define SCM_SET(VALUE, SECTION) \
+/**
+ * Set class member from cfg
+ * Member must have same name as cfg key, but with '_' prefix
+ * @param VALUE - value to be set without '_' (cfg key)
+ * @param SECTION - section string
+ */
+#define SCM_MSET(VALUE, SECTION) \
 SCM_NAMESPACE::set(_##VALUE, #VALUE, (SECTION))
 
-#define SCM_SET_CUR(VALUE) \
+/**
+ * Set class member from cfg from 'scm_current_sect'
+ * 'scm_current_sect must' be declared before usage of that macro
+ * Member must have same name as cfg key, but with '_' prefix
+ * @param VALUE - value to be set without '_' (cfg key)
+ */
+#define SCM_MSET_CUR(VALUE) \
 SCM_NAMESPACE::set(_##VALUE, #VALUE, scm_current_sect)
 
-#define SCM_SET_IE(VALUE, SECTION, DEFAULT) \
+/**
+ * Set class member from cfg if section or key exist
+ * Member must have same name as cfg key, but with '_' prefix
+ * @param VALUE - value to be set without '_' (cfg key)
+ * @param SECTION - section string
+ * @param DEFAULT - default value
+ */
+#define SCM_MSET_IE(VALUE, SECTION, DEFAULT) \
 SCM_NAMESPACE::set_ie(_##VALUE, #VALUE, (SECTION), (DEFAULT))
 
-#define SCM_SET_IE_CUR(VALUE, DEFAULT) \
+/**
+ * Set class member from cfg from 'scm_current_sect' if section or key exist
+ * 'scm_current_sect' must be declared before usage of that macro
+ * Member must have same name as cfg key, but with '_' prefix
+ * @param VALUE - value to be set without '_' (cfg key)
+ * @param DEFAULT - default value
+ */
+#define SCM_MSET_IE_CUR(VALUE, DEFAULT) \
 SCM_NAMESPACE::set_ie(_##VALUE, #VALUE, scm_current_sect, (DEFAULT))
 
-#define SCM_SET_IKE(VALUE, SECTION, DEFAULT) \
+/**
+ * Set class member from cfg if key exist
+ * Member must have same name as cfg key, but with '_' prefix
+ * @param VALUE - value to be set without '_' (cfg key)
+ * @param SECTION - section string
+ * @param DEFAULT - default value
+ */
+#define SCM_MSET_IKE(VALUE, SECTION, DEFAULT) \
 SCM_NAMESPACE::set_ike(_##VALUE, #VALUE, (SECTION), (DEFAULT))
 
-#define SCM_SET_IKE_CUR(VALUE, DEFAULT) \
+/**
+ * Set class member from cfg from 'scm_current_sect' if key exist
+ * 'scm_current_sect' must be declared before usage of that macro
+ * Member must have same name as cfg key, but with '_' prefix
+ * @param VALUE - value to be set without '_' (cfg key)
+ * @param DEFAULT - default value
+ */
+#define SCM_MSET_IKE_CUR(VALUE, DEFAULT) \
 SCM_NAMESPACE::set_ike(_##VALUE, #VALUE, scm_current_sect, (DEFAULT))
+
+/**
+ * Set value from cfg
+ * Member must have same name as cfg key
+ * @param VALUE - value to be set
+ * @param SECTION - section string
+ */
+#define SCM_SET(VALUE, SECTION) \
+SCM_NAMESPACE::set(VALUE, #VALUE, (SECTION))
+
+/**
+ * Set value from 'scm_current_sect'
+ * 'scm_current_sect must' be declared before usage of that macro
+ * Member must have same name as cfg key
+ * @param VALUE - value to be set
+ */
+#define SCM_SET_CUR(VALUE) \
+SCM_NAMESPACE::set(VALUE, #VALUE, scm_current_sect)
+
+/**
+ * Set value from cfg if section or key exist
+ * Member must have same name as cfg key
+ * @param VALUE - value to be set
+ * @param SECTION - section string
+ * @param DEFAULT - default value
+ */
+#define SCM_SET_IE(VALUE, SECTION, DEFAULT) \
+SCM_NAMESPACE::set_ie(VALUE, #VALUE, (SECTION), (DEFAULT))
+
+/**
+ * Set value from 'scm_current_sect' if section or key exist
+ * 'scm_current_sect' must be declared before usage of that macro
+ * Member must have same name as cfg key
+ * @param VALUE - value to be set
+ * @param DEFAULT - default value
+ */
+#define SCM_SET_IE_CUR(VALUE, DEFAULT) \
+SCM_NAMESPACE::set_ie(VALUE, #VALUE, scm_current_sect, (DEFAULT))
+
+/**
+ * Set value from cfg if key exist
+ * Member must have same name as cfg key
+ * @param VALUE - value to be set
+ * @param SECTION - section string
+ * @param DEFAULT - default value
+ */
+#define SCM_SET_IKE(VALUE, SECTION, DEFAULT) \
+SCM_NAMESPACE::set_ike(VALUE, #VALUE, (SECTION), (DEFAULT))
+
+/**
+ * Set value from 'scm_current_sect' if key exist
+ * 'scm_current_sect' must be declared before usage of that macro
+ * Member must have same name as cfg key
+ * @param VALUE - value to be set
+ * @param DEFAULT - default value
+ */
+#define SCM_SET_IKE_CUR(VALUE, DEFAULT) \
+SCM_NAMESPACE::set_ike(VALUE, #VALUE, scm_current_sect, (DEFAULT))
 
 #undef IA // inline auto
 #undef IS_WHITE_SPACE

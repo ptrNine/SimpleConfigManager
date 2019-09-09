@@ -9,10 +9,10 @@ public:
     Ammo(const std::string_view& section) {
         auto scm_current_sect = section;
 
-        SCM_SET_CUR(pack_size);
-        SCM_SET_CUR(tracer);
-        SCM_SET_CUR(buck_shot);
-        SCM_SET_IKE_CUR(ap_factor, 1.0);
+        SCM_MSET_CUR(pack_size);
+        SCM_MSET_CUR(tracer);
+        SCM_MSET_CUR(buck_shot);
+        SCM_MSET_IKE_CUR(ap_factor, 1.0);
     }
 
     friend std::ostream& operator<< (std::ostream& os, const Ammo& ammo) {
@@ -40,14 +40,14 @@ public:
         scm::set(_mag_size, "mag_size", section);
 
         // Or this
-        SCM_SET(ammo_sections, section);
+        SCM_MSET(ammo_sections, section);
 
         // :)
         auto scm_current_sect = section;
 
-        SCM_SET_CUR(hit_power);
-        SCM_SET_CUR(flame_bone);
-        SCM_SET_CUR(flame_pos);
+        SCM_MSET_CUR(hit_power);
+        SCM_MSET_CUR(flame_bone);
+        SCM_MSET_CUR(flame_pos);
     }
 
     friend std::ostream& operator<< (std::ostream& os, const Weapon& wpn) {
