@@ -205,7 +205,7 @@ namespace scm_details {
 
 
 
-    void Section::reload() {
+    inline void Section::reload() {
         for (const auto& sectStr : _parents) {
             auto& sect = cfg_data().getSection(sectStr);
 

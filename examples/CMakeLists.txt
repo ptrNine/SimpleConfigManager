@@ -30,3 +30,21 @@ scm_add_examples(
         custom_assert
         example1
 )
+
+message(noinlne)
+set(noinline_src
+        noinline_example/test1.cpp
+        noinline_example/test2.cpp
+        noinline_example/noinline.cpp
+        noinline_example/cfg.cpp
+)
+set(noinline_includes
+        noinline_example/test1.hpp
+        noinline_example/test2.hpp
+        noinline_example/cfg.hpp
+)
+add_executable(noinline ${noinline_src})
+target_link_libraries(noinline scmfs_static)
+install(FILES ${noinline_src} ${noinline_includes} DESTINATION ${SCM_EXAMPLES_INSTALL_DIR}/src/noinline_example)
+install(TARGETS noinline DESTINATION ${SCM_EXAMPLES_INSTALL_DIR})
+
