@@ -74,7 +74,7 @@ namespace scm_details {
         return str;
     }
 
-    auto unpackVariable (StrViewCref path, SizeT lineNum, StrViewCref line) -> String {
+    auto unpackVariable (StrViewCref path, SizeT lineNum, StrViewCref line, Section* current_sect = nullptr) -> String {
         auto ptr = line.begin();
 
         bool onSingleQuotes = false;
@@ -117,14 +117,24 @@ namespace scm_details {
                     }
 
                     auto val   = StrView();
-                    auto first = line.substr(start - line.cbegin(), ptr - start);
+                    auto first = String(line.substr(start - line.cbegin(), ptr - start));
 
                     skip_spaces_if_no_endl(ptr, line.cend());
 
                     ////////// Dereference key
-                    if (ptr == line.cend() || *ptr != ':')
-                        //////// Read value from global namespaces
-                        val = cfg_data().getValue(String(GLOBAL_NAMESPACE), String(first));
+                    if (ptr == line.cend() || *ptr != ':') {
+                        auto mval = std::optional<String>();
+
+                        // If current section exists read from this first
+                        if (current_sect) {
+                            mval = current_sect->valueOpt(first);
+                        }
+
+                        if (mval)
+                            val = *mval;
+                        else
+                            val = cfg_data().getValue(String(GLOBAL_NAMESPACE), first);
+                    }
                     else if (*ptr == ':'){
                         //////// Read value from section (only no-parents section supported)
                         ++ptr; // skip ':'
@@ -147,11 +157,11 @@ namespace scm_details {
                         }
 
                         auto second = line.substr(start2 - line.cbegin(), ptr - start2);
-                        SCM_EXCEPTION(CfgException, cfg_data().getSection(String(first)).getParents().empty(),
+                        SCM_EXCEPTION(CfgException, cfg_data().getSection(first).getParents().empty(),
                                       "Attempt to dereference key '", second, "' from section [", first, "] with parent ",
                                       "in ", path, ":", std::to_string(lineNum + 1).data());
 
-                        val = cfg_data().getValue(String(first), String(second));
+                        val = cfg_data().getValue(first, String(second));
                     }
 
                     result += remove_brackets_if_exists(val);
@@ -329,6 +339,9 @@ namespace scm_details {
                               "Unexpected symbol '", String(1, *ptr), "' after section [", currentSection->name(),
                               "] definition in ", path, ":", std::to_string(n + 1).data());
 
+                SCM_EXCEPTION(CfgException, currentSection->name() != GLOBAL_NAMESPACE,
+                             "Attempt to define parents for global section in ", path, ":", std::to_string(n + 1));
+
                 ++ptr; // skip ':'
 
                 SCM_EXCEPTION(CfgException, !skip_spaces_if_no_endl(ptr, line.cend()),
@@ -376,7 +389,7 @@ namespace scm_details {
             else {
                 auto pair = pairFromLine(path, n, line);
 
-                auto var  = unpackVariable(path, n, pair.second);
+                auto var  = unpackVariable(path, n, pair.second, currentSection);
 
                 if (currentSection)
                     currentSection->add(String(pair.first), var);

@@ -197,7 +197,7 @@ namespace scm_details {
         }
 
     private:
-        CfgData()  = default;
+        CfgData() { addSection("", 0, "__global"); }
         ~CfgData() = default;
     };
 
