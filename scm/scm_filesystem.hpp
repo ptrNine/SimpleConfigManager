@@ -14,6 +14,8 @@ namespace scm_fs_dtls {
 
     auto _getExeLocation   () -> std::string;
     int  _recursiveMakeDir (const std::string_view& path);
+    auto _listFiles        (const std::string_view& path) -> std::vector<std::string>;
+    auto _listDirs         (const std::string_view& path) -> std::vector<std::string>;
 
 } // namespace scm_fs_dtls
 
@@ -35,8 +37,36 @@ namespace SCM_NAMESPACE {
          * Recursive create dir
          * @param path - path for creation
          */
-        inline void create_dir(const std::string_view &path) {
+        inline void create_dir(const ScmStrView& path) {
             scm_fs_dtls::_recursiveMakeDir(path);
+        }
+
+        /**
+         * List files in directory
+         * @param path - path to directory
+         * @return vector of files
+         */
+        auto list_files(const ScmStrView& path) -> ScmVector<ScmString> {
+            auto res = scm_fs_dtls::_listFiles(path);
+
+            if constexpr (std::is_same_v<ScmString, std::string>)
+                return res;
+            else
+                return ScmVector<ScmString>(res.begin(), res.end());
+        }
+
+        /**
+         * List directories in directory
+         * @param path - path to directory
+         * @return vector of directories
+         */
+        auto list_directories(const ScmStrView& path) -> ScmVector<ScmString> {
+            auto res = scm_fs_dtls::_listDirs(path);
+
+            if constexpr (std::is_same_v<ScmString, std::string>)
+                return res;
+            else
+                return ScmVector<ScmString>(res.begin(), res.end());
         }
 
         /**

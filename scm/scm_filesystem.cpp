@@ -11,12 +11,37 @@
 
 #include <cstring>
 #include <unistd.h>
+#include <dirent.h>
 #include <sys/stat.h>
 
 #define DE_PATH_MAX 8192
 
 int makeDirAbort(const std::string& path) {
     return scm_fs_dtls::_makeDirAbort(path, strerror(errno));
+}
+
+static auto _listAny(const std::string_view& path, int dt_type) -> std::vector<std::string> {
+    auto vec = std::vector<std::string>();
+
+    struct dirent* dir;
+    auto d = opendir(std::string(path).c_str());
+
+    if (d) {
+        while ((dir = readdir(d)) != nullptr)
+            if (dir->d_type == dt_type)
+                vec.emplace_back(dir->d_name, strlen(dir->d_name));
+        closedir(d);
+    }
+
+    return std::move(vec);
+}
+
+auto scm_fs_dtls::_listFiles(const std::string_view& path) -> std::vector<std::string> {
+    return std::move(_listAny(path, DT_REG));
+}
+
+auto scm_fs_dtls::_listDirs(const std::string_view& path) -> std::vector<std::string> {
+    return std::move(_listAny(path, DT_DIR));
 }
 
 int scm_fs_dtls::_recursiveMakeDir(const std::string_view& path) {
@@ -80,6 +105,41 @@ std::string GetLastErrorAsString(int rc) {
 
 int makeDirAbort(const std::string& path, int rc) {
     return scm_fs_dtls::_makeDirAbort(path, GetLastErrorAsString(rc).c_str());
+}
+
+static auto _listAny(const std::string_view& path, bool isDir) -> std::vector<std::string> {
+    auto vec = std::vector<std::string>();
+
+	auto app_path = std::string(path);
+	app_path += "/*";
+
+	WIN32_FIND_DATA data;
+	HANDLE hFind;
+
+	if ((hFind = FindFirstFile(app_path.c_str(), &data)) != INVALID_HANDLE_VALUE) {
+		if (isDir) {
+			do {
+				if (data.dwFileAttributes == FILE_ATTRIBUTE_DIRECTORY)
+					vec.emplace_back(data.cFileName, strlen(data.cFileName));
+			} while(FindNextFile(hFind, &data) != 0);
+		} else {
+			do {
+				if (data.dwFileAttributes != FILE_ATTRIBUTE_DIRECTORY)
+					vec.emplace_back(data.cFileName, strlen(data.cFileName));
+			} while(FindNextFile(hFind, &data) != 0);
+		}
+		FindClose(hFind);
+	}
+
+    return std::move(vec);
+}
+
+auto scm_fs_dtls::_listFiles(const std::string_view& path) -> std::vector<std::string> {
+    return std::move(_listAny(path, false));
+}
+
+auto scm_fs_dtls::_listDirs(const std::string_view& path) -> std::vector<std::string> {
+    return std::move(_listAny(path, true));
 }
 
 int scm_fs_dtls::_recursiveMakeDir(const std::string_view& path) {
