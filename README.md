@@ -134,10 +134,12 @@ cd SimpleConfigManager
 git checkout v0.1.0 -b release
 
 # Run cmake
-cmake . -Bbuild
+# Set -DSCM_BUILD_TESTS=ON for building tests
+# Set -DSCM_BUILD_EXAMPLES=ON for building examples
+cmake . -Bbuild -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="your/install/path/"
 
 # Build and install
-# Install in "/usr/local/" require root rights. You can set another DESTDIR before this command
+# Install in "/usr/local/" (by default) require root rights
 make -C build install
 
 ```
@@ -153,10 +155,12 @@ cd SimpleConfigManager
 git checkout v0.1.0 -b release
 
 :: Run cmake
-cmake . -G "MinGW Makefiles" -Bbuild
+:: Set -DSCM_BUILD_TESTS=ON for building tests
+:: Set -DSCM_BUILD_EXAMPLES=ON for building examples
+cmake . -G "MinGW Makefiles" -Bbuild -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="your/install/path/"
 
-:: Build and install in "C:/Program Files/SCM"
-mingw32-make -C build install DESTDIR="C:/Program Files/SCM"
+:: Build and install
+mingw32-make -C build install
 
 ```
 ### Usage in CMake-based project
