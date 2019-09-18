@@ -46,13 +46,9 @@ namespace SCM_NAMESPACE {
          * @param path - path to directory
          * @return vector of files
          */
-        auto list_files(const ScmStrView& path) -> ScmVector<ScmString> {
+        inline auto list_files(const ScmStrView& path) -> ScmVector<ScmString> {
             auto res = scm_fs_dtls::_listFiles(path);
-
-            if constexpr (std::is_same_v<ScmString, std::string>)
-                return res;
-            else
-                return ScmVector<ScmString>(res.begin(), res.end());
+            return ScmVector<ScmString>(res.begin(), res.end());
         }
 
         /**
@@ -60,13 +56,9 @@ namespace SCM_NAMESPACE {
          * @param path - path to directory
          * @return vector of directories
          */
-        auto list_directories(const ScmStrView& path) -> ScmVector<ScmString> {
+        inline auto list_directories(const ScmStrView& path) -> ScmVector<ScmString> {
             auto res = scm_fs_dtls::_listDirs(path);
-
-            if constexpr (std::is_same_v<ScmString, std::string>)
-                return res;
-            else
-                return ScmVector<ScmString>(res.begin(), res.end());
+            return ScmVector<ScmString>(res.begin(), res.end());
         }
 
         /**
