@@ -1,0 +1,24 @@
+dist: bionic
+sudo: required
+
+branches:
+  only:
+    - master
+
+language: cpp
+
+os:
+    - linux
+
+compiler:
+    - gcc
+
+env:
+    - TARGET_CPU=amd64 BUILD_TYPE=Debug
+    - TARGET_CPU=amd64 BUILD_TYPE=Release
+
+script:
+    - cmake . -Bbuild -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DSCM_BUILD_TESTS=ON -DSCM_BUILD_EXAMPLES=ON
+    - make -C build
+    - cd build
+    - ctest --output-on-failure

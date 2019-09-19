@@ -59,6 +59,7 @@ install(
 
 if(SCM_BUILD_TESTS)
     message("Build tests")
+    enable_testing()
     add_subdirectory(tests)
 endif()
 
@@ -66,3 +67,4 @@ if(SCM_BUILD_EXAMPLES)
     message("Build examples")
     add_subdirectory(examples)
 endif()
+

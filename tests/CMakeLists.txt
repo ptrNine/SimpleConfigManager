@@ -35,8 +35,6 @@ endif()
 
 find_package(GTest PATHS "${PROJECT_BINARY_DIR}/../googletest/")
 
-enable_testing()
-
 include_directories(
         ${PROJECT_BINARY_DIR}/..
         ${PROJECT_SOURCE_DIR}/..
