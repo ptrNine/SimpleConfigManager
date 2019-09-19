@@ -1,4 +1,8 @@
-# SimpleConfigManager
+SimpleConfigManager
+===================
+
+[![Build Status](https://travis-ci.org/ptrNine/SimpleConfigManager.svg?branch=master)](https://travis-ci.org/ptrNine/SimpleConfigManager)
+
 A parser for ini-like configs
 # Introduction
 SCM (SimpleConfigManager) is:
