@@ -54,7 +54,7 @@ configure_file(
 
 install(
     FILES ${ScmIncludes}
-    DESTINATION ${SCM_INCLUDE_INSTALL_DIR}
+    DESTINATION ${SCM_INCLUDE_INSTALL_DIR}/scm
 )
 
 if(SCM_BUILD_TESTS)
