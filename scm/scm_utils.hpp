@@ -218,7 +218,7 @@ namespace SCM_NAMESPACE {
         str.resize(size + 1);
 
         ifs.read(str.data(), size);
-        return std::move(str);
+        return str;
     }
 
     /**
@@ -253,7 +253,7 @@ namespace SCM_NAMESPACE {
         if (start != str.size())
             vec.emplace_back(str.substr(start, str.size()));
 
-        return std::move(vec);
+        return vec;
     }
 } // namespace SCM_NAMESPACE
 
